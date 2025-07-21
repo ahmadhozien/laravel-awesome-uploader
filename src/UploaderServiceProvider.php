@@ -82,6 +82,10 @@ class UploaderServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__ . '/resources/js' => $this->app->publicPath('vendor/uploader'),
             ], 'uploader-assets');
+
+            $this->publishes([
+                __DIR__ . '/resources/lang' => $this->app->langPath('vendor/uploader'),
+            ], 'uploader-lang');
         }
     }
 }

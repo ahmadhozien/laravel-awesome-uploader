@@ -120,4 +120,10 @@
         </div>
     </div>
 </div>
+<script>
+    window.LaravelUploader = {
+        uploadUrl: "{{ route('uploader.upload') }}",
+        csrfToken: "{{ csrf_token() }}"
+    };
+</script>
 <script src="{{ asset('vendor/uploader/popup.js') }}"></script>
