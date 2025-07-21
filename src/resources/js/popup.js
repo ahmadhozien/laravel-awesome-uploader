@@ -26,6 +26,15 @@
     "uploader-selected-only"
   );
 
+  const config = window.LaravelUploader || {};
+  const uploadUrl = config.uploadUrl;
+  const csrfToken = config.csrfToken;
+  const labels = config.labels || {};
+  const hasNext = config.hasNext;
+  const hasPrev = config.hasPrev;
+  const initialTab = config.initialTab || "manager";
+  const allowMultiple = config.multiple !== false;
+
   let files = [];
   let isUploading = false;
   let lastFocusedElement = null;
@@ -99,6 +108,43 @@
         url: "https://via.placeholder.com/120x90?text=Close",
       },
     ];
+  }
+
+  function addFiles(newFiles) {
+    if (!allowMultiple) {
+      files = [Array.from(newFiles)[0]];
+    } else {
+      files = [...files, ...Array.from(newFiles)];
+    }
+    renderFiles();
+  }
+
+  function renderFiles() {
+    filesList.innerHTML = "";
+    if (files.length > 0) {
+      filesSection.style.display = "";
+      uploadBtn.disabled = false;
+    } else {
+      filesSection.style.display = "none";
+      uploadBtn.disabled = true;
+    }
+    files.forEach((file, idx) => {
+      const li = document.createElement("li");
+      li.className =
+        "flex items-center justify-between p-2 border rounded-lg bg-white shadow-sm";
+      li.innerHTML = `<span class="truncate max-w-xs">${file.name}</span>`;
+      const removeBtn = document.createElement("button");
+      removeBtn.className =
+        "text-red-500 hover:text-red-700 px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-red-400";
+      removeBtn.setAttribute("aria-label", "Remove file");
+      removeBtn.innerHTML = "&times;";
+      removeBtn.addEventListener("click", function () {
+        files.splice(idx, 1);
+        renderFiles();
+      });
+      li.appendChild(removeBtn);
+      filesList.appendChild(li);
+    });
   }
 
   // Tab switching
