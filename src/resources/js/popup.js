@@ -316,11 +316,19 @@
     const formData = new FormData();
     files.forEach((file) => formData.append("files[]", file));
     try {
-      const response = await fetch("{{ route('uploader.upload') }}", {
+      // Use config for all dynamic options and labels
+      const config = window.LaravelUploader || {};
+      const uploadUrl = config.uploadUrl;
+      const csrfToken = config.csrfToken;
+      const labels = config.labels || {};
+      const hasNext = config.hasNext;
+      const hasPrev = config.hasPrev;
+      const initialTab = config.initialTab || "manager";
+      const response = await fetch(uploadUrl, {
         method: "POST",
         body: formData,
         headers: {
-          "X-CSRF-TOKEN": "{{ csrf_token() }}",
+          "X-CSRF-TOKEN": csrfToken,
           Accept: "application/json",
         },
       });

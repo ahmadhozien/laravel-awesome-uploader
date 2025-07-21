@@ -121,9 +121,32 @@
     </div>
 </div>
 <script>
-    window.LaravelUploader = {
-        uploadUrl: "{{ route('uploader.upload') }}",
-        csrfToken: "{{ csrf_token() }}"
-    };
+    window.LaravelUploader = @json([
+        'uploadUrl' => route('uploader.upload'),
+        'csrfToken' => csrf_token(),
+        'labels' => [
+            'tabFileManager' => $tabFileManager,
+            'tabUpload' => $tabUpload,
+            'searchPlaceholder' => $searchPlaceholder,
+            'sortOptions' => $sortOptions,
+            'selectedOnlyLabel' => $selectedOnlyLabel,
+            'addFilesLabel' => $addFilesLabel,
+            'cancelSelectionLabel' => $cancelSelectionLabel,
+            'nextLabel' => $nextLabel,
+            'prevLabel' => $prevLabel,
+            'upload' => __('Upload'),
+            'uploading' => __('Uploading...'),
+            'dragDrop' => __('Drag & Drop files here'),
+            'or' => __('or'),
+            'selectFiles' => __('Select Files'),
+            'selectedFiles' => __('Selected Files'),
+            'fileSelected' => __('file(s) selected'),
+            'close' => __('Close'),
+        ],
+        'hasNext' => $hasNext,
+        'hasPrev' => $hasPrev,
+        'initialTab' => $initialTab,
+        // You can add more config here as needed
+    ]);
 </script>
 <script src="{{ asset('vendor/uploader/popup.js') }}"></script>
