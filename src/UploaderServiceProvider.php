@@ -4,6 +4,8 @@ namespace Hozien\Uploader;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Blade;
+use function resource_path;
+use function app;
 
 class UploaderServiceProvider extends ServiceProvider
 {
@@ -17,8 +19,14 @@ class UploaderServiceProvider extends ServiceProvider
         $this->registerRoutes();
         $this->registerViews();
         $this->registerPublishing();
-        // Register anonymous components in the 'uploader' namespace
-        Blade::anonymousComponentNamespace(__DIR__ . '/resources/views', 'uploader');
+        // Register anonymous components in the 'uploader' namespace for both package and published paths
+        Blade::anonymousComponentNamespace(__DIR__ . '/resources/views/components', 'uploader');
+
+        // Optionally, if users publish the views:
+        Blade::anonymousComponentNamespace(
+            resource_path('views/vendor/uploader/components'),
+            'uploader'
+        );
     }
 
     /**
