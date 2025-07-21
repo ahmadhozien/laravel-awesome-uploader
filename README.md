@@ -96,6 +96,68 @@ The package provides a Blade component that you can use in your views. **No Alpi
 - `:multiple="true"` — Allow multiple file uploads (default: true)
 - All labels and options are customizable via props or translation files.
 
+### React
+
+To use the React component, import it into your application and provide the necessary props.
+
+```jsx
+import React from "react";
+import Uploader from "../vendor/uploader/react/Uploader";
+
+function MyComponent() {
+  const handleUploadSuccess = (response) => {
+    console.log("Upload successful:", response);
+  };
+
+  const handleUploadError = (error) => {
+    console.error("Upload failed:", error);
+  };
+
+  return (
+    <div>
+      <h1>My React App</h1>
+      <Uploader
+        onUploadSuccess={handleUploadSuccess}
+        onUploadError={handleUploadError}
+      />
+    </div>
+  );
+}
+
+export default MyComponent;
+```
+
+### Vue
+
+To use the Vue component, import it into your application and listen for the `upload-success` and `upload-error` events.
+
+```vue
+<template>
+  <div>
+    <h1>My Vue App</h1>
+    <Uploader @upload-success="onUploadSuccess" @upload-error="onUploadError" />
+  </div>
+</template>
+
+<script>
+import Uploader from "../vendor/uploader/vue/Uploader.vue";
+
+export default {
+  components: {
+    Uploader,
+  },
+  methods: {
+    onUploadSuccess(response) {
+      console.log("Upload successful:", response);
+    },
+    onUploadError(error) {
+      console.error("Upload failed:", error);
+    },
+  },
+};
+</script>
+```
+
 ### Fetching Uploads (API)
 
 - **Endpoint:** `GET /api/uploads`
