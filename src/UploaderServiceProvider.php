@@ -97,6 +97,10 @@ class UploaderServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__ . '/../database/migrations' => $this->app->databasePath('migrations'),
             ], 'uploader-migrations');
+
+            $this->publishes([
+                __DIR__ . '/Policies/UploadPolicy.php' => $this->app->basePath('app/Policies/UploadPolicy.php'),
+            ], 'uploader-policy');
         }
     }
 }

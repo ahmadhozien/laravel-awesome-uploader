@@ -117,18 +117,38 @@ The package provides a Blade component that you can use in your views. **No Alpi
 - By default:
   - Admins can view/delete/restore any upload
   - Users can only act on their own uploads
-- You can override the policy by publishing and editing it in your app.
+- **To customize permissions:**
+  1. Publish the policy to your app:
+     ```bash
+     php artisan vendor:publish --tag=uploader-policy
+     ```
+  2. Edit `app/Policies/UploadPolicy.php` as needed (see examples below).
+  3. Register your custom policy in `AuthServiceProvider` if needed.
+- **Example: Only allow users with a specific permission to delete:**
+  ```php
+  public function delete(User $user, Upload $upload)
+  {
+      return $user->hasPermissionTo('uploader-delete');
+  }
+  ```
+- **Example: Restrict to team members:**
+  ```php
+  public function view(User $user, Upload $upload)
+  {
+      return $user->is_admin || $upload->user_id === $user->id || $user->team_id === $upload->team_id;
+  }
+  ```
 - Use `$this->authorize('view', $upload)` or similar in your controllers.
+- You can check permissions in Blade views with `@can('delete', $upload)`.
+
+| Action  | Who Can Do It (Default) | How to Customize         |
+| ------- | ----------------------- | ------------------------ |
+| View    | Admins, owner           | Edit `view` in policy    |
+| Delete  | Admins, owner           | Edit `delete` in policy  |
+| Restore | Admins only             | Edit `restore` in policy |
+
+**This system gives you full control and security, and is easy to override for any business logic!**
 
 ### Customizing User/Admin Logic
 
-- Override the `user_resolver`, `admin_resolver`, and `uploads_query` closures in your app's `config/uploader.php` to match your authentication and role system.
-- Example for Laravel Breeze/Jetstream:
-  ```php
-  'user_resolver' => function () { return auth('web')->user(); },
-  'admin_resolver' => function ($user) { return $user && $user->hasRole('admin'); },
-  ```
-
-## License
-
-The MIT License (MIT). Please see [License File](LICENSE) for more information.
+- Override the `
