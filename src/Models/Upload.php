@@ -14,6 +14,7 @@ class Upload extends Model
         'type',
         'name',
         'size',
-        'user_id'
+        'user_id',
+        'guest_token'
     ];
 }

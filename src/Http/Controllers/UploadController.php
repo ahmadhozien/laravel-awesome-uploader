@@ -36,6 +36,12 @@ class UploadController extends Controller
      */
     public function upload(Request $request, ImageProcessor $imageProcessor)
     {
+        $allowGuests = Config::get('uploader.allow_guests', false);
+        $guestTokenResolver = Config::get('uploader.guest_token_resolver');
+        $guestToken = $guestTokenResolver();
+        if (!$allowGuests && !auth()->check()) {
+            return Response::json(['error' => 'Login required'], 403);
+        }
         $multiple = $request->input('multiple', false) || $request->hasFile('files');
         $saveToDb = $request->boolean('saveToDb', false);
         if ($multiple) {
@@ -60,6 +66,7 @@ class UploadController extends Controller
                         'name' => $result['name'],
                         'size' => $result['size'],
                         'user_id' => auth()->id(),
+                        'guest_token' => auth()->check() ? null : $guestToken,
                     ]);
                     $result['id'] = $upload->id;
                 }
@@ -91,6 +98,7 @@ class UploadController extends Controller
                     'name' => $result['name'],
                     'size' => $result['size'],
                     'user_id' => auth()->id(),
+                    'guest_token' => auth()->check() ? null : $guestToken,
                 ]);
                 $result['id'] = $upload->id;
             }
@@ -105,10 +113,17 @@ class UploadController extends Controller
         $userResolver = Config::get('uploader.user_resolver');
         $adminResolver = Config::get('uploader.admin_resolver');
         $uploadsQuery = Config::get('uploader.uploads_query');
+        $guestTokenResolver = Config::get('uploader.guest_token_resolver');
+        $allowGuests = Config::get('uploader.allow_guests', false);
         $user = $userResolver();
         $isAdmin = $adminResolver($user);
+        $guestToken = $guestTokenResolver();
         $query = Upload::query();
-        $query = $uploadsQuery($query, $user, $isAdmin);
+        if (!$user && $allowGuests) {
+            $query = $query->where('guest_token', $guestToken);
+        } else {
+            $query = $uploadsQuery($query, $user, $isAdmin);
+        }
         $uploads = $query->latest()->get();
         return Response::json($uploads);
     }

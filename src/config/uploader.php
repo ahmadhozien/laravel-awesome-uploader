@@ -69,6 +69,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Guest Uploads
+    |--------------------------------------------------------------------------
+    |
+    | Allow non-authenticated users to upload files. If true, guests can upload
+    | and their uploads are tracked by a guest token (session ID by default).
+    |
+    */
+    'allow_guests' => true,
+    'guest_token_resolver' => function () {
+        return session()->getId();
+    },
+
+    /*
+    |--------------------------------------------------------------------------
     | User/Admin/Query Resolvers
     |--------------------------------------------------------------------------
     |

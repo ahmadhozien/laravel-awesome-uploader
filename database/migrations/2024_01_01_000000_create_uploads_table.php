@@ -15,6 +15,7 @@ return new class extends Migration {
             $table->string('name');
             $table->unsignedBigInteger('size');
             $table->unsignedBigInteger('user_id')->nullable();
+            $table->string('guest_token')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
