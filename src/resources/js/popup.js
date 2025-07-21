@@ -280,6 +280,54 @@ document.addEventListener("DOMContentLoaded", function () {
       }, 10);
       document.body.style.overflow = "hidden";
       document.addEventListener("focus", trapFocus, true);
+
+      // Attach upload event each time modal is shown
+      const uploadBtn = document.getElementById("uploader-upload-btn");
+      if (uploadBtn) {
+        uploadBtn.onclick = async function () {
+          if (isUploading || files.length === 0) return;
+          isUploading = true;
+          uploadText.classList.add("hidden");
+          uploadingText.classList.remove("hidden");
+          spinner.classList.remove("hidden");
+          uploadBtn.disabled = true;
+          const formData = new FormData();
+          if (allowMultiple) {
+            files.forEach((file) => formData.append("files[]", file));
+          } else {
+            formData.append("file", files[0]);
+          }
+          try {
+            const response = await fetch(uploadUrl, {
+              method: "POST",
+              body: formData,
+              headers: {
+                "X-CSRF-TOKEN": csrfToken,
+                Accept: "application/json",
+              },
+            });
+            if (response.ok) {
+              const result = await response.json();
+              window.dispatchEvent(
+                new CustomEvent("files-uploaded", { detail: result })
+              );
+              files = [];
+              renderFiles();
+              closeModal();
+            } else {
+              alert("Upload failed");
+            }
+          } catch (error) {
+            alert("An error occurred: " + error);
+          } finally {
+            isUploading = false;
+            uploadText.classList.remove("hidden");
+            uploadingText.classList.add("hidden");
+            spinner.classList.add("hidden");
+            uploadBtn.disabled = false;
+          }
+        };
+      }
     });
     function closeModal() {
       modal.classList.remove("opacity-100");
