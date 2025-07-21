@@ -10,6 +10,7 @@ A customizable and pluggable file uploader for Laravel that supports Blade, Reac
 - **Image Processing**: Optional image optimization, resizing, and cropping (requires `intervention/image`).
 - **JSON Responses**: Consistent API responses with file `path`, `url`, and `type`.
 - **Drag & Drop**: Modern drag-and-drop UI for all frontend components.
+- **No JS Dependencies for Blade**: The Blade uploader works out of the box with vanilla JavaScript—no Alpine.js or other libraries required.
 
 ## Installation
 
@@ -51,17 +52,13 @@ return [
 
 ### Blade
 
-The package provides a Blade component that you can use in your views.
+The package provides a Blade component that you can use in your views. **No Alpine.js or other JS libraries are required.**
 
 ```html
-<!-- Include Alpine.js -->
-<script
-  src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js"
-  defer
-></script>
-
 <!-- Add a button to open the uploader -->
-<button @click="$dispatch('open-uploader')">Open Uploader</button>
+<button onclick="window.dispatchEvent(new Event('open-uploader'))">
+  Open Uploader
+</button>
 
 <!-- Include the uploader component -->
 <x-uploader::popup />
@@ -115,26 +112,25 @@ To use the Vue component, import it into your application and listen for the `up
     <h1>My Vue App</h1>
     <Uploader @upload-success="onUploadSuccess" @upload-error="onUploadError" />
   </div>
-  template>
-
-  <script>
-    import Uploader from "../vendor/uploader/vue/Uploader.vue";
-
-    export default {
-      components: {
-        Uploader,
-      },
-      methods: {
-        onUploadSuccess(response) {
-          console.log("Upload successful:", response);
-        },
-        onUploadError(error) {
-          console.error("Upload failed:", error);
-        },
-      },
-    };
-  </script>
 </template>
+
+<script>
+import Uploader from "../vendor/uploader/vue/Uploader.vue";
+
+export default {
+  components: {
+    Uploader,
+  },
+  methods: {
+    onUploadSuccess(response) {
+      console.log("Upload successful:", response);
+    },
+    onUploadError(error) {
+      console.error("Upload failed:", error);
+    },
+  },
+};
+</script>
 ```
 
 ## License

@@ -3,6 +3,7 @@
 namespace Hozien\Uploader;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Blade;
 
 class UploaderServiceProvider extends ServiceProvider
 {
@@ -16,6 +17,8 @@ class UploaderServiceProvider extends ServiceProvider
         $this->registerRoutes();
         $this->registerViews();
         $this->registerPublishing();
+        // Register anonymous components in the 'uploader' namespace
+        Blade::anonymousComponentNamespace(__DIR__ . '/resources/views', 'uploader');
     }
 
     /**
