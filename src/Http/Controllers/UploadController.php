@@ -37,8 +37,7 @@ class UploadController extends Controller
     public function upload(Request $request, ImageProcessor $imageProcessor)
     {
         $allowGuests = Config::get('uploader.allow_guests', false);
-        $guestTokenResolver = Config::get('uploader.guest_token_resolver');
-        $guestToken = $guestTokenResolver();
+        $guestToken = $request->input('guest_token') ?: (Config::get('uploader.guest_token_resolver'))();
         if (!$allowGuests && !auth()->check()) {
             return Response::json(['error' => 'Login required'], 403);
         }
@@ -113,11 +112,10 @@ class UploadController extends Controller
         $userResolver = Config::get('uploader.user_resolver');
         $adminResolver = Config::get('uploader.admin_resolver');
         $uploadsQuery = Config::get('uploader.uploads_query');
-        $guestTokenResolver = Config::get('uploader.guest_token_resolver');
         $allowGuests = Config::get('uploader.allow_guests', false);
         $user = $userResolver();
         $isAdmin = $adminResolver($user);
-        $guestToken = $guestTokenResolver();
+        $guestToken = $request->input('guest_token') ?: (Config::get('uploader.guest_token_resolver'))();
         $query = Upload::query();
         if (!$user && $allowGuests) {
             $query = $query->where('guest_token', $guestToken);

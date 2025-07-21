@@ -1,4 +1,19 @@
 document.addEventListener("DOMContentLoaded", function () {
+  function getOrSetGuestToken() {
+    let token = localStorage.getItem("uploader_guest_token");
+    if (!token) {
+      if (window.crypto && window.crypto.randomUUID) {
+        token = window.crypto.randomUUID();
+      } else {
+        token = "guest-" + Math.random().toString(36).substr(2, 16);
+      }
+      localStorage.setItem("uploader_guest_token", token);
+    }
+    return token;
+  }
+  window.LaravelUploader = window.LaravelUploader || {};
+  window.LaravelUploader.guestToken = getOrSetGuestToken();
+
   (function () {
     // Modal logic
     const modal = document.getElementById("uploader-modal");
@@ -35,6 +50,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const hasPrev = config.hasPrev;
     const initialTab = config.initialTab || "manager";
     const allowMultiple = config.multiple !== false;
+    const guestToken = config.guestToken;
 
     let files = [];
     let isUploading = false;
@@ -226,6 +242,20 @@ document.addEventListener("DOMContentLoaded", function () {
       // Dispatch modal-opened event
       window.dispatchEvent(new CustomEvent("modal-opened"));
 
+      // Fetch previous uploads for this user/guest
+      const guestToken = window.LaravelUploader.guestToken;
+      let url = "/api/uploads";
+      if (guestToken) {
+        url += "?guest_token=" + encodeURIComponent(guestToken);
+      }
+      fetch(url)
+        .then((res) => res.json())
+        .then((data) => {
+          managerFiles = Array.isArray(data) ? data : [];
+          renderFileGrid();
+          updateSelectedCount();
+        });
+
       // Attach upload event each time modal is shown
       const uploadBtn = document.getElementById("uploader-upload-btn");
       if (uploadBtn) {
@@ -249,6 +279,9 @@ document.addEventListener("DOMContentLoaded", function () {
           }
           formData.append("multiple", allowMultiple ? "1" : "0");
           formData.append("saveToDb", saveToDb ? "1" : "0");
+          if (guestToken) {
+            formData.append("guest_token", guestToken);
+          }
           try {
             const response = await fetch(uploadUrl, {
               method: "POST",
