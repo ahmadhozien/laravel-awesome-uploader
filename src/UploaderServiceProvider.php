@@ -86,6 +86,10 @@ class UploaderServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__ . '/resources/lang' => $this->app->langPath('vendor/uploader'),
             ], 'uploader-lang');
+
+            $this->publishes([
+                __DIR__ . '/../database/migrations' => $this->app->databasePath('migrations'),
+            ], 'uploader-migrations');
         }
     }
 }

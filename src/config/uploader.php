@@ -58,6 +58,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Soft Deletes
+    |--------------------------------------------------------------------------
+    |
+    | Enable or disable soft deletes for uploads. If true, deleted uploads are
+    | only marked as deleted and can be restored. If false, uploads are permanently deleted.
+    |
+    */
+    'soft_deletes' => true,
+
+    /*
+    |--------------------------------------------------------------------------
     | UI Modules
     |--------------------------------------------------------------------------
     |

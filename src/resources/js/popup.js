@@ -224,12 +224,15 @@ document.addEventListener("DOMContentLoaded", function () {
           uploadingText.classList.remove("hidden");
           spinner.classList.remove("hidden");
           uploadBtn.disabled = true;
+          const saveToDb = config.saveToDb === true;
           const formData = new FormData();
           if (allowMultiple) {
             files.forEach((file) => formData.append("files[]", file));
           } else {
             formData.append("file", files[0]);
           }
+          formData.append("multiple", allowMultiple ? "1" : "0");
+          formData.append("saveToDb", saveToDb ? "1" : "0");
           try {
             const response = await fetch(uploadUrl, {
               method: "POST",
@@ -269,7 +272,7 @@ document.addEventListener("DOMContentLoaded", function () {
               );
               files = [];
               renderFiles();
-              closeModal();
+              // Do NOT close the modal here
             } else {
               alert("Upload failed");
             }

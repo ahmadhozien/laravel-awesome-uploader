@@ -11,6 +11,7 @@ use Hozien\Uploader\Support\ImageProcessor;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Config;
+use Hozien\Uploader\Models\Upload;
 
 class UploadController extends Controller
 {
@@ -36,6 +37,7 @@ class UploadController extends Controller
     public function upload(Request $request, ImageProcessor $imageProcessor)
     {
         $multiple = $request->input('multiple', false) || $request->hasFile('files');
+        $saveToDb = $request->boolean('saveToDb', false);
         if ($multiple) {
             $validator = Validator::make($request->all(), [
                 'files' => 'required|array',
@@ -49,6 +51,17 @@ class UploadController extends Controller
                 $result = $this->store($file);
                 if ($result && Str::startsWith($result['type'], 'image') && Config::get('uploader.image_optimization')) {
                     $imageProcessor->process($result['path']);
+                }
+                if ($saveToDb && $result) {
+                    $upload = Upload::create([
+                        'path' => $result['path'],
+                        'url' => $result['url'],
+                        'type' => $result['type'],
+                        'name' => $result['name'],
+                        'size' => $result['size'],
+                        'user_id' => auth()->id(),
+                    ]);
+                    $result['id'] = $upload->id;
                 }
                 $results[] = $result;
             }
@@ -69,6 +82,17 @@ class UploadController extends Controller
             $result = $this->store($file);
             if ($result && Str::startsWith($result['type'], 'image') && Config::get('uploader.image_optimization')) {
                 $imageProcessor->process($result['path']);
+            }
+            if ($saveToDb && $result) {
+                $upload = Upload::create([
+                    'path' => $result['path'],
+                    'url' => $result['url'],
+                    'type' => $result['type'],
+                    'name' => $result['name'],
+                    'size' => $result['size'],
+                    'user_id' => auth()->id(),
+                ]);
+                $result['id'] = $upload->id;
             }
             return $result
                 ? Response::json($result)

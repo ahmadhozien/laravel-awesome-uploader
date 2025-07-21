@@ -19,6 +19,7 @@
     // Initial tab
     'initialTab' => 'manager',
     'multiple' => true,
+    'saveToDb' => true,
 ])
 <div id="uploader-modal"
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 transition-opacity duration-300"
@@ -127,6 +128,7 @@
         'uploadUrl' => route('uploader.upload'),
         'csrfToken' => csrf_token(),
         'multiple' => $multiple,
+        'saveToDb' => $saveToDb,
         'labels' => [
             'tabFileManager' => $tabFileManager,
             'tabUpload' => $tabUpload,
