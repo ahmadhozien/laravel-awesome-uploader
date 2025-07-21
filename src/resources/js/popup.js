@@ -112,7 +112,8 @@ document.addEventListener("DOMContentLoaded", function () {
       files.forEach((file, idx) => {
         const li = document.createElement("li");
         li.className =
-          "flex items-center gap-3 p-2 border rounded-lg bg-white shadow-sm";
+          "flex items-center gap-3 p-2 border rounded-lg bg-white shadow-sm" +
+          (errors[idx] ? " border-red-400" : "");
         // Thumbnail or icon
         let thumbHtml = "";
         if (file.type && file.type.startsWith("image/")) {
@@ -131,9 +132,7 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
             <div class="text-xs text-gray-500">${(
               file.type || ""
-            ).toUpperCase()} &middot; ${
-          file.size ? Math.round(file.size / 1024) : 0
-        } KB</div>
+            ).toUpperCase()} &middot; ${formatFileSize(file.size || 0)}</div>
             ${
               errors[idx]
                 ? `<div class='mt-1 text-xs text-red-600'>${errors[idx]}</div>`
@@ -149,15 +148,18 @@ document.addEventListener("DOMContentLoaded", function () {
         filesList.appendChild(li);
       });
       // Footer button visibility
-      if (cancelSelectionBtn) {
-        cancelSelectionBtn.style.display = files.length > 0 ? "" : "none";
-      }
+      // Remove footer button visibility logic for cancelSelectionBtn here
     }
 
     function renderFooterButtons() {
       // Next/Prev only if pagination
       if (prevBtn) prevBtn.style.display = hasPrev ? "" : "none";
       if (nextBtn) nextBtn.style.display = hasNext ? "" : "none";
+      // Cancel Selection only if there are selected files in file manager
+      if (cancelSelectionBtn) {
+        cancelSelectionBtn.style.display =
+          selectedManagerFiles.size > 0 ? "" : "none";
+      }
     }
 
     // Tab switching
@@ -268,16 +270,19 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     if (addFilesBtn) {
       addFilesBtn.addEventListener("click", function () {
-        // Dispatch add-files-clicked event
+        // Dispatch add-files-clicked event with full file objects
+        const selectedFiles = managerFiles.filter((f) =>
+          selectedManagerFiles.has(f.id)
+        );
         window.dispatchEvent(
           new CustomEvent("add-files-clicked", {
-            detail: { selected: Array.from(selectedManagerFiles) },
+            detail: { selected: selectedFiles },
           })
         );
         // Dispatch selected files (mock)
         window.dispatchEvent(
           new CustomEvent("files-uploaded", {
-            detail: Array.from(selectedManagerFiles),
+            detail: selectedFiles,
           })
         );
         selectedManagerFiles.clear();
@@ -430,14 +435,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 const errorData = await response.json();
                 if (errorData && errorData.errors) {
                   errorMsg = Object.values(errorData.errors).flat().join("; ");
-                  // If multiple files, map errors to file indices
-                  if (errorData.errors['files.*']) {
-                    errorData.errors['files.*'].forEach((msg, i) => {
+                  // Map errors for files.* and file as before
+                  if (errorData.errors["files.*"]) {
+                    errorData.errors["files.*"].forEach((msg, i) => {
                       fileErrors[i] = msg;
                     });
-                  } else if (errorData.errors['file']) {
-                    fileErrors[0] = errorData.errors['file'][0];
+                  } else if (errorData.errors["file"]) {
+                    fileErrors[0] = errorData.errors["file"][0];
                   }
+                  // Map errors for files.0, files.1, ...
+                  Object.keys(errorData.errors).forEach(function (key) {
+                    const match = key.match(/^files\.(\d+)$/);
+                    if (match) {
+                      fileErrors[parseInt(match[1], 10)] =
+                        errorData.errors[key][0];
+                    }
+                  });
                 } else if (errorData && errorData.error) {
                   errorMsg = errorData.error;
                 }
@@ -533,3 +546,11 @@ document.addEventListener("DOMContentLoaded", function () {
     updateSelectedCount();
   })();
 });
+
+// General file size converter
+function formatFileSize(size) {
+  if (size < 1024) return size + " B";
+  if (size < 1024 * 1024) return (size / 1024).toFixed(2) + " KB";
+  if (size < 1024 * 1024 * 1024) return (size / 1024 / 1024).toFixed(2) + " MB";
+  return (size / 1024 / 1024 / 1024).toFixed(2) + " GB";
+}
