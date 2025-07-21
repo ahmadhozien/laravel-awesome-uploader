@@ -48,6 +48,22 @@ To enable database integration:
 
 You can customize the uploader's behavior in the `config/uploader.php` file.
 
+**To change the disk for uploads (e.g., to S3):**
+
+1. In your `.env` file, set:
+   ```env
+   UPLOADER_DISK=s3
+   ```
+2. In your `config/uploader.php`:
+   ```php
+   return [
+       // ...
+       'disk' => env('UPLOADER_DISK', 'public'), // Use 's3', 'public', etc.
+       // ...
+   ];
+   ```
+3. Make sure your S3 disk is configured in `config/filesystems.php` and your S3 credentials are set in `.env` as per Laravel's documentation.
+
 ```php
 return [
     // ...
