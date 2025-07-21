@@ -146,7 +146,6 @@
         'hasNext' => $hasNext,
         'hasPrev' => $hasPrev,
         'initialTab' => $initialTab,
-        // You can add more config here as needed
     ]);
 </script>
 <script src="{{ asset('vendor/uploader/popup.js') }}"></script>
