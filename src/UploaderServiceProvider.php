@@ -1,0 +1,106 @@
+<?php
+
+namespace Hozien\Uploader;
+
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Gate;
+use Hozien\Uploader\Models\Upload;
+use Hozien\Uploader\Policies\UploadPolicy;
+use function resource_path;
+use function app;
+
+class UploaderServiceProvider extends ServiceProvider
+{
+    /**
+     * Bootstrap any application services.
+     *
+     * @return void
+     */
+    public function boot()
+    {
+        $this->registerRoutes();
+        $this->registerViews();
+        $this->registerPublishing();
+        // Register anonymous components in the 'uploader' namespace for both package and published paths
+        Blade::anonymousComponentNamespace(__DIR__ . '/resources/views/components', 'uploader');
+
+        // Optionally, if users publish the views:
+        Blade::anonymousComponentNamespace(
+            resource_path('views/vendor/uploader/components'),
+            'uploader'
+        );
+        // Register a Blade component alias for dot syntax usage
+        Blade::component('uploader::popup', 'uploader.popup');
+        // Register policy for Upload model
+        Gate::policy(Upload::class, UploadPolicy::class);
+    }
+
+    /**
+     * Register any application services.
+     *
+     * @return void
+     */
+    public function register()
+    {
+        $this->mergeConfigFrom(__DIR__ . '/config/uploader.php', 'uploader');
+
+        $this->app->singleton('uploader', function ($app) {
+            return new \Hozien\Uploader\Uploader();
+        });
+    }
+
+    /**
+     * Register the package routes.
+     *
+     * @return void
+     */
+    protected function registerRoutes()
+    {
+        $this->loadRoutesFrom(__DIR__ . '/routes/uploader.php');
+    }
+
+    /**
+     * Register the package views.
+     *
+     * @return void
+     */
+    protected function registerViews()
+    {
+        $this->loadViewsFrom(__DIR__ . '/resources/views', 'uploader');
+    }
+
+    /**
+     * Register the package's publishable resources.
+     *
+     * @return void
+     */
+    protected function registerPublishing()
+    {
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                __DIR__ . '/config/uploader.php' => $this->app->configPath('uploader.php'),
+            ], 'uploader-config');
+
+            $this->publishes([
+                __DIR__ . '/resources/views' => $this->app->resourcePath('views/vendor/uploader'),
+            ], 'uploader-views');
+
+            $this->publishes([
+                __DIR__ . '/resources/js' => $this->app->publicPath('vendor/uploader'),
+            ], 'uploader-assets');
+
+            $this->publishes([
+                __DIR__ . '/resources/lang' => $this->app->langPath('vendor/uploader'),
+            ], 'uploader-lang');
+
+            $this->publishes([
+                __DIR__ . '/../database/migrations' => $this->app->databasePath('migrations'),
+            ], 'uploader-migrations');
+
+            $this->publishes([
+                __DIR__ . '/Policies/UploadPolicy.php' => $this->app->basePath('app/Policies/UploadPolicy.php'),
+            ], 'uploader-policy');
+        }
+    }
+}
