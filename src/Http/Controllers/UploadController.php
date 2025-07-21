@@ -35,28 +35,44 @@ class UploadController extends Controller
      */
     public function upload(Request $request, ImageProcessor $imageProcessor)
     {
-        $validator = Validator::make($request->all(), [
-            'file' => [
-                'required',
-                'file',
-                'mimes:' . implode(',', Config::get('uploader.allowed_file_types')),
-                'max:' . Config::get('uploader.max_size'),
-            ],
-        ]);
-
-        if ($validator->fails()) {
-            return Response::json(['errors' => $validator->errors()], 422);
+        $multiple = $request->input('multiple', false) || $request->hasFile('files');
+        if ($multiple) {
+            $validator = Validator::make($request->all(), [
+                'files' => 'required|array',
+                'files.*' => 'file|mimes:' . implode(',', Config::get('uploader.allowed_file_types')) . '|max:' . Config::get('uploader.max_size'),
+            ]);
+            if ($validator->fails()) {
+                return Response::json(['errors' => $validator->errors()], 422);
+            }
+            $results = [];
+            foreach ($request->file('files', []) as $file) {
+                $result = $this->store($file);
+                if ($result && Str::startsWith($result['type'], 'image') && Config::get('uploader.image_optimization')) {
+                    $imageProcessor->process($result['path']);
+                }
+                $results[] = $result;
+            }
+            return Response::json($results);
+        } else {
+            $validator = Validator::make($request->all(), [
+                'file' => [
+                    'required',
+                    'file',
+                    'mimes:' . implode(',', Config::get('uploader.allowed_file_types')),
+                    'max:' . Config::get('uploader.max_size'),
+                ],
+            ]);
+            if ($validator->fails()) {
+                return Response::json(['errors' => $validator->errors()], 422);
+            }
+            $file = $request->file('file');
+            $result = $this->store($file);
+            if ($result && Str::startsWith($result['type'], 'image') && Config::get('uploader.image_optimization')) {
+                $imageProcessor->process($result['path']);
+            }
+            return $result
+                ? Response::json($result)
+                : Response::json(['error' => 'Could not save file.'], 500);
         }
-
-        $file = $request->file('file');
-        $result = $this->store($file);
-
-        if ($result && Str::startsWith($result['type'], 'image') && Config::get('uploader.image_optimization')) {
-            $imageProcessor->process($result['path']);
-        }
-
-        return $result
-            ? Response::json($result)
-            : Response::json(['error' => 'Could not save file.'], 500);
     }
 }

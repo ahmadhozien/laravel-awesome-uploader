@@ -18,6 +18,7 @@
     'hasPrev' => false,
     // Initial tab
     'initialTab' => 'manager',
+    'multiple' => true,
 ])
 <div id="uploader-modal"
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 transition-opacity duration-300"
@@ -71,7 +72,8 @@
                     <div class="text-center space-y-3">
                         <p class="text-lg text-gray-700">{{ __('Drag & Drop files here') }}</p>
                         <p class="text-gray-400">{{ __('or') }}</p>
-                        <input type="file" multiple id="uploader-file-input" class="hidden">
+                        <input type="file" @if ($multiple) multiple @endif id="uploader-file-input"
+                            class="hidden">
                         <button id="uploader-select-btn"
                             class="px-5 py-2 text-white bg-blue-600 rounded-lg shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 font-medium transition">
                             {{ __('Select Files') }}
@@ -124,6 +126,7 @@
     window.LaravelUploader = {!! json_encode([
         'uploadUrl' => route('uploader.upload'),
         'csrfToken' => csrf_token(),
+        'multiple' => $multiple,
         'labels' => [
             'tabFileManager' => $tabFileManager,
             'tabUpload' => $tabUpload,
