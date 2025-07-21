@@ -60,7 +60,34 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // No mock data; managerFiles starts empty and is filled after upload
 
+    // Error alert elements
+    const errorAlert = document.getElementById("uploader-error-alert");
+    const errorMessage = document.getElementById("uploader-error-message");
+    const errorDismiss = document.getElementById("uploader-error-dismiss");
+
+    function showError(message) {
+      if (errorAlert && errorMessage) {
+        errorMessage.textContent = message;
+        errorAlert.classList.remove("hidden");
+        // Optionally highlight dropzone
+        dropzone.classList.add("border-red-500", "bg-red-50");
+        dropzone.classList.remove("border-gray-300", "bg-gray-50");
+      }
+    }
+    function clearError() {
+      if (errorAlert && errorMessage) {
+        errorMessage.textContent = "";
+        errorAlert.classList.add("hidden");
+        dropzone.classList.remove("border-red-500", "bg-red-50");
+        dropzone.classList.add("border-gray-300", "bg-gray-50");
+      }
+    }
+    if (errorDismiss) {
+      errorDismiss.addEventListener("click", clearError);
+    }
+
     function addFiles(newFiles) {
+      clearError();
       if (!allowMultiple) {
         files = [Array.from(newFiles)[0]];
       } else {
@@ -73,7 +100,7 @@ document.addEventListener("DOMContentLoaded", function () {
       );
     }
 
-    function renderFiles() {
+    function renderFiles(errors = {}) {
       filesList.innerHTML = "";
       if (files.length > 0) {
         filesSection.style.display = "";
@@ -85,20 +112,52 @@ document.addEventListener("DOMContentLoaded", function () {
       files.forEach((file, idx) => {
         const li = document.createElement("li");
         li.className =
-          "flex items-center justify-between p-2 border rounded-lg bg-white shadow-sm";
-        li.innerHTML = `<span class="truncate max-w-xs">${file.name}</span>`;
-        const removeBtn = document.createElement("button");
-        removeBtn.className =
-          "text-red-500 hover:text-red-700 px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-red-400";
-        removeBtn.setAttribute("aria-label", "Remove file");
-        removeBtn.innerHTML = "&times;";
+          "flex items-center gap-3 p-2 border rounded-lg bg-white shadow-sm";
+        // Thumbnail or icon
+        let thumbHtml = "";
+        if (file.type && file.type.startsWith("image/")) {
+          thumbHtml = `<img src="${URL.createObjectURL(
+            file
+          )}" alt="thumb" class="w-10 h-10 object-cover rounded border" />`;
+        } else {
+          thumbHtml = `<span class="w-10 h-10 flex items-center justify-center rounded border bg-gray-100 text-gray-400"><svg xmlns='http://www.w3.org/2000/svg' class='h-6 w-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 4v16m8-8H4'/></svg></span>`;
+        }
+        li.innerHTML = `
+          ${thumbHtml}
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <span class="truncate max-w-xs font-medium">${file.name}</span>
+              <button class="text-red-500 hover:text-red-700 px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-red-400" aria-label="Remove file">&times;</button>
+            </div>
+            <div class="text-xs text-gray-500">${(
+              file.type || ""
+            ).toUpperCase()} &middot; ${
+          file.size ? Math.round(file.size / 1024) : 0
+        } KB</div>
+            ${
+              errors[idx]
+                ? `<div class='mt-1 text-xs text-red-600'>${errors[idx]}</div>`
+                : ""
+            }
+          </div>
+        `;
+        const removeBtn = li.querySelector("button");
         removeBtn.addEventListener("click", function () {
           files.splice(idx, 1);
-          renderFiles();
+          renderFiles(errors);
         });
-        li.appendChild(removeBtn);
         filesList.appendChild(li);
       });
+      // Footer button visibility
+      if (cancelSelectionBtn) {
+        cancelSelectionBtn.style.display = files.length > 0 ? "" : "none";
+      }
+    }
+
+    function renderFooterButtons() {
+      // Next/Prev only if pagination
+      if (prevBtn) prevBtn.style.display = hasPrev ? "" : "none";
+      if (nextBtn) nextBtn.style.display = hasNext ? "" : "none";
     }
 
     // Tab switching
@@ -122,8 +181,22 @@ document.addEventListener("DOMContentLoaded", function () {
     function renderFileGrid() {
       fileGrid.innerHTML = "";
       let visibleFiles = managerFiles;
+      // Search filter
+      if (searchTerm) {
+        visibleFiles = visibleFiles.filter(
+          (f) => f.name && f.name.toLowerCase().includes(searchTerm)
+        );
+      }
+      // Sort
+      visibleFiles = visibleFiles.slice().sort((a, b) => {
+        if (sortOrder === "newest") {
+          return (b.id || 0) - (a.id || 0);
+        } else {
+          return (a.id || 0) - (b.id || 0);
+        }
+      });
       if (selectedOnlyCheckbox && selectedOnlyCheckbox.checked) {
-        visibleFiles = managerFiles.filter((f) =>
+        visibleFiles = visibleFiles.filter((f) =>
           selectedManagerFiles.has(f.id)
         );
       }
@@ -176,6 +249,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         fileGrid.appendChild(card);
       });
+      renderFooterButtons();
     }
 
     function updateSelectedCount() {
@@ -221,6 +295,27 @@ document.addEventListener("DOMContentLoaded", function () {
         /* Pagination logic here */
       });
 
+    // Add search and sort logic
+    const searchInput = document.querySelector(
+      'input[placeholder="' + labels.searchPlaceholder + '"]'
+    );
+    const sortSelect = document.querySelector("select");
+    let searchTerm = "";
+    let sortOrder = "newest";
+
+    if (searchInput) {
+      searchInput.addEventListener("input", function () {
+        searchTerm = this.value.toLowerCase();
+        renderFileGrid();
+      });
+    }
+    if (sortSelect) {
+      sortSelect.addEventListener("change", function () {
+        sortOrder = this.selectedIndex === 0 ? "newest" : "oldest";
+        renderFileGrid();
+      });
+    }
+
     // Modal open/close/focus trap logic (as before)
     function trapFocus(e) {
       if (!modal.contains(e.target)) {
@@ -261,6 +356,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (uploadBtn) {
         uploadBtn.onclick = async function () {
           if (isUploading || files.length === 0) return;
+          clearError();
           // Dispatch upload-start event
           window.dispatchEvent(
             new CustomEvent("upload-start", { detail: { files } })
@@ -328,16 +424,39 @@ document.addEventListener("DOMContentLoaded", function () {
               renderFiles();
               // Do NOT close the modal here
             } else {
+              let errorMsg = "Upload failed";
+              let fileErrors = {};
+              try {
+                const errorData = await response.json();
+                if (errorData && errorData.errors) {
+                  errorMsg = Object.values(errorData.errors).flat().join("; ");
+                  // If multiple files, map errors to file indices
+                  if (errorData.errors['files.*']) {
+                    errorData.errors['files.*'].forEach((msg, i) => {
+                      fileErrors[i] = msg;
+                    });
+                  } else if (errorData.errors['file']) {
+                    fileErrors[0] = errorData.errors['file'][0];
+                  }
+                } else if (errorData && errorData.error) {
+                  errorMsg = errorData.error;
+                }
+              } catch (e) {}
+              // Only show global error if not a file-specific error
+              if (Object.keys(fileErrors).length > 0) {
+                renderFiles(fileErrors);
+              } else {
+                showError(errorMsg);
+              }
               window.dispatchEvent(
-                new CustomEvent("upload-error", { detail: { error: response } })
+                new CustomEvent("upload-error", { detail: { error: errorMsg } })
               );
-              alert("Upload failed");
             }
           } catch (error) {
+            showError("An error occurred: " + error);
             window.dispatchEvent(
               new CustomEvent("upload-error", { detail: { error } })
             );
-            alert("An error occurred: " + error);
           } finally {
             isUploading = false;
             uploadText.classList.remove("hidden");
@@ -407,6 +526,7 @@ document.addEventListener("DOMContentLoaded", function () {
       selectedManagerFiles.clear();
       renderFileGrid();
       updateSelectedCount();
+      clearError();
     }
     // Initial render for file manager (empty)
     renderFileGrid();

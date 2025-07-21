@@ -25,19 +25,21 @@
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 transition-opacity duration-300"
     style="display:none;" tabindex="-1">
     <div id="uploader-modal-content" tabindex="-1"
-        class="relative w-full max-w-4xl mx-4 bg-white rounded-2xl shadow-2xl transition-transform duration-300 scale-95 opacity-0 focus:outline-none min-h-[500px] max-h-[90vh] flex flex-col">
+        class="relative w-full max-w-7xl mx-4 bg-white rounded-2xl shadow-2xl transition-transform duration-300 scale-95 opacity-0 focus:outline-none min-h-[700px] max-h-[90vh] flex flex-col">
         <!-- Header -->
         <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b">
-            <button id="uploader-close-btn" aria-label="{{ __('Close') }}"
-                class="text-2xl text-gray-400 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-full px-2 transition">&times;</button>
-            <div class="flex-1 flex justify-center">
-                <nav class="flex space-x-2" aria-label="Tabs">
+            <div class="flex items-center space-x-2 rtl:space-x-reverse">
+                <nav class="flex space-x-2 rtl:space-x-reverse" aria-label="Tabs">
                     <button data-tab="manager"
-                        class="uploader-tab px-4 py-2 rounded-t-lg font-medium text-gray-700 bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">{{ $tabFileManager }}</button>
+                        class="uploader-tab px-4 py-2 rounded-lg font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition border border-transparent hover:bg-gray-100 active:bg-gray-200"
+                        style="background: none;">{{ $tabFileManager }}</button>
                     <button data-tab="upload"
-                        class="uploader-tab px-4 py-2 rounded-t-lg font-medium text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition">{{ $tabUpload }}</button>
+                        class="uploader-tab px-4 py-2 rounded-lg font-semibold text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition border border-transparent hover:bg-gray-100 active:bg-gray-200"
+                        style="background: none;">{{ $tabUpload }}</button>
                 </nav>
             </div>
+            <button id="uploader-close-btn" aria-label="{{ __('Close') }}"
+                class="text-2xl text-gray-400 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-full px-2 transition">&times;</button>
         </div>
         <!-- Body -->
         <div class="p-6 space-y-6 flex-1 overflow-y-auto">
@@ -68,6 +70,14 @@
             </div>
             <!-- Upload Tab -->
             <div id="uploader-tab-upload" class="uploader-tab-content hidden">
+                <!-- Error Alert Area -->
+                <div id="uploader-error-alert"
+                    class="hidden mb-4 p-4 rounded-lg bg-red-100 border border-red-300 text-red-800 flex items-center justify-between"
+                    role="alert">
+                    <span id="uploader-error-message"></span>
+                    <button id="uploader-error-dismiss" class="ml-4 text-red-500 hover:text-red-700 focus:outline-none"
+                        aria-label="{{ __('Dismiss error') }}">&times;</button>
+                </div>
                 <div id="uploader-dropzone"
                     class="flex items-center justify-center w-full px-6 py-12 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 transition-colors duration-200 cursor-pointer">
                     <div class="text-center space-y-3">
@@ -76,7 +86,8 @@
                         <input type="file" @if ($multiple) multiple @endif id="uploader-file-input"
                             class="hidden">
                         <button id="uploader-select-btn"
-                            class="px-5 py-2 text-white bg-blue-600 rounded-lg shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 font-medium transition">
+                            class="px-5 py-2 text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 font-semibold transition border border-transparent"
+                            style="box-shadow: 0 2px 8px 0 rgba(59,130,246,0.08);">
                             {{ __('Select Files') }}
                         </button>
                     </div>
@@ -86,8 +97,8 @@
                     <ul class="space-y-2" id="uploader-files-list"></ul>
                     <div class="mt-6 text-left">
                         <button id="uploader-upload-btn"
-                            class="inline-flex items-center px-6 py-2 text-white bg-green-600 rounded-lg shadow hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 font-medium transition disabled:opacity-60"
-                            disabled>
+                            class="inline-flex items-center px-6 py-2 text-white bg-green-600 rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 font-semibold transition border border-transparent disabled:opacity-60"
+                            style="box-shadow: 0 2px 8px 0 rgba(16,185,129,0.08);" disabled>
                             <svg id="uploader-spinner" class="animate-spin h-5 w-5 mr-2 text-white hidden"
                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
@@ -110,15 +121,18 @@
             </div>
             <div class="flex gap-2 flex-wrap">
                 <button id="uploader-cancel-selection"
-                    class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium transition">{{ $cancelSelectionLabel }}</button>
+                    class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 font-semibold transition border border-transparent"
+                    style="display:none;">{{ $cancelSelectionLabel }}</button>
                 <button id="uploader-prev"
-                    class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 font-medium transition"
+                    class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 font-semibold transition border border-transparent"
+                    style="display:none;"
                     @if (!$hasPrev) disabled @endif>{{ $prevLabel }}</button>
                 <button id="uploader-next"
-                    class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition"
+                    class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-semibold transition border border-transparent"
+                    style="display:none;"
                     @if (!$hasNext) disabled @endif>{{ $nextLabel }}</button>
                 <button id="uploader-add-files"
-                    class="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 font-medium transition">{{ $addFilesLabel }}</button>
+                    class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-semibold transition border border-transparent">{{ $addFilesLabel }}</button>
             </div>
         </div>
     </div>
