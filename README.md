@@ -8,9 +8,12 @@ A customizable and pluggable file uploader for Laravel that supports Blade, Reac
 - **Multiple Frontend Options**: Blade, React, and Vue components out of the box.
 - **Configurable Storage**: Use any of Laravel's filesystem disks (local, S3, etc.).
 - **Image Processing**: Optional image optimization, resizing, and cropping (requires `intervention/image`).
-- **JSON Responses**: Consistent API responses with file `path`, `url`, and `type`.
+- **JSON Responses**: Consistent API responses with file `path`, `url`, `type`, `name`, `size`, and (if enabled) `id`.
 - **Drag & Drop**: Modern drag-and-drop UI for all frontend components.
-- **No JS Dependencies for Blade**: The Blade uploader works out of the box with a published vanilla JavaScript file—no Alpine.js or other libraries required.
+- **Database Integration**: Optionally save uploads to the database and fetch them via API.
+- **Soft Deletes**: Optionally enable soft deletes for uploads.
+- **Smart User/Admin Fetching**: Easily fetch only the current user's uploads, or all uploads for admins.
+- **Policy-Driven Permissions**: Secure, customizable access control for uploads.
 
 ## Installation
 
@@ -26,25 +29,38 @@ Then, publish the package's assets:
 php artisan vendor:publish --provider="Hozien\Uploader\UploaderServiceProvider"
 ```
 
-This will publish the configuration file to `config/uploader.php`, views to `resources/views/vendor/uploader`, and frontend assets (including JS) to `public/vendor/uploader`.
+This will publish the configuration file to `config/uploader.php`, views to `resources/views/vendor/uploader`, frontend assets (including JS) to `public/vendor/uploader`, migrations to `database/migrations`, and translation files to `resources/lang/vendor/uploader`.
+
+## Database Setup
+
+To enable database integration:
+
+1. Publish the migration:
+   ```bash
+   php artisan vendor:publish --tag=uploader-migrations
+   ```
+2. Run the migration:
+   ```bash
+   php artisan migrate
+   ```
 
 ## Configuration
 
 You can customize the uploader's behavior in the `config/uploader.php` file.
 
 ```php
-// config/uploader.php
-
 return [
-    'disk' => env('UPLOADER_DISK', 'public'),
-    'allowed_file_types' => ['jpg', 'jpeg', 'png', 'gif', 'pdf'],
-    'max_size' => 2048, // in KB
-    'image_optimization' => true,
-    'ui' => [
-        'blade' => true,
-        'react' => true,
-        'vue' => true,
-    ],
+    // ...
+    'save_to_db' => false, // Set to true to save uploads to the database
+    'soft_deletes' => false, // Set to true to enable soft deletes
+    // Smart user/admin logic
+    'user_resolver' => function () { return auth()->user(); },
+    'admin_resolver' => function ($user) { return $user && property_exists($user, 'is_admin') && $user->is_admin; },
+    'uploads_query' => function ($query, $user, $isAdmin) {
+        if ($isAdmin) return $query;
+        return $query->where('user_id', $user ? $user->id : null);
+    },
+    // ...
 ];
 ```
 
@@ -61,7 +77,7 @@ The package provides a Blade component that you can use in your views. **No Alpi
 <button onclick="window.dispatchEvent(new Event('open-uploader'))">Open Uploader</button>
 
 <!-- Include the uploader component -->
-<x-uploader::popup />
+<x-uploader::popup :saveToDb="true" :multiple="true" />
 
 <!-- Include the uploader JS asset (required) -->
 <script src="{{ asset('vendor/uploader/popup.js') }}"></script>
@@ -74,67 +90,44 @@ The package provides a Blade component that you can use in your views. **No Alpi
 </script>
 ```
 
-### React
+#### Options
 
-To use the React component, import it into your application and provide the necessary props.
+- `:saveToDb="true"` — Save uploads to the database (default: false)
+- `:multiple="true"` — Allow multiple file uploads (default: true)
+- All labels and options are customizable via props or translation files.
 
-```jsx
-import React from "react";
-import Uploader from "../vendor/uploader/react/Uploader";
+### Fetching Uploads (API)
 
-function MyComponent() {
-  const handleUploadSuccess = (response) => {
-    console.log("Upload successful:", response);
-  };
+- **Endpoint:** `GET /api/uploads`
+- **Returns:**
+  - For regular users: only their uploads
+  - For admins: all uploads
+- **How it works:**
+  - Uses the `user_resolver`, `admin_resolver`, and `uploads_query` closures in config for full flexibility.
 
-  const handleUploadError = (error) => {
-    console.error("Upload failed:", error);
-  };
+### Soft Deletes
 
-  return (
-    <div>
-      <h1>My React App</h1>
-      <Uploader
-        onUploadSuccess={handleUploadSuccess}
-        onUploadError={handleUploadError}
-      />
-    </div>
-  );
-}
+- Enable by setting `'soft_deletes' => true` in your config.
+- Deleted uploads are only marked as deleted and can be restored.
+- If false, uploads are permanently deleted.
 
-export default MyComponent;
-```
+### Policies & Permissions
 
-### Vue
+- The package registers a policy for the `Upload` model.
+- By default:
+  - Admins can view/delete/restore any upload
+  - Users can only act on their own uploads
+- You can override the policy by publishing and editing it in your app.
+- Use `$this->authorize('view', $upload)` or similar in your controllers.
 
-To use the Vue component, import it into your application and listen for the `upload-success` and `upload-error` events.
+### Customizing User/Admin Logic
 
-```vue
-<template>
-  <div>
-    <h1>My Vue App</h1>
-    <Uploader @upload-success="onUploadSuccess" @upload-error="onUploadError" />
-  </div>
-</template>
-
-<script>
-import Uploader from "../vendor/uploader/vue/Uploader.vue";
-
-export default {
-  components: {
-    Uploader,
-  },
-  methods: {
-    onUploadSuccess(response) {
-      console.log("Upload successful:", response);
-    },
-    onUploadError(error) {
-      console.error("Upload failed:", error);
-    },
-  },
-};
-</script>
-```
+- Override the `user_resolver`, `admin_resolver`, and `uploads_query` closures in your app's `config/uploader.php` to match your authentication and role system.
+- Example for Laravel Breeze/Jetstream:
+  ```php
+  'user_resolver' => function () { return auth('web')->user(); },
+  'admin_resolver' => function ($user) { return $user && $user->hasRole('admin'); },
+  ```
 
 ## License
 
