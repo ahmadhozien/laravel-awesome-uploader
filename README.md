@@ -10,7 +10,7 @@ A customizable and pluggable file uploader for Laravel that supports Blade, Reac
 - **Image Processing**: Optional image optimization, resizing, and cropping (requires `intervention/image`).
 - **JSON Responses**: Consistent API responses with file `path`, `url`, and `type`.
 - **Drag & Drop**: Modern drag-and-drop UI for all frontend components.
-- **No JS Dependencies for Blade**: The Blade uploader works out of the box with vanilla JavaScript—no Alpine.js or other libraries required.
+- **No JS Dependencies for Blade**: The Blade uploader works out of the box with a published vanilla JavaScript file—no Alpine.js or other libraries required.
 
 ## Installation
 
@@ -26,7 +26,7 @@ Then, publish the package's assets:
 php artisan vendor:publish --provider="Hozien\Uploader\UploaderServiceProvider"
 ```
 
-This will publish the configuration file to `config/uploader.php`, views to `resources/views/vendor/uploader`, and frontend assets to `public/vendor/uploader`.
+This will publish the configuration file to `config/uploader.php`, views to `resources/views/vendor/uploader`, and frontend assets (including JS) to `public/vendor/uploader`.
 
 ## Configuration
 
@@ -54,14 +54,17 @@ return [
 
 The package provides a Blade component that you can use in your views. **No Alpine.js or other JS libraries are required.**
 
-```html
+**You must include the published JS asset for the uploader modal to work:**
+
+```blade
 <!-- Add a button to open the uploader -->
-<button onclick="window.dispatchEvent(new Event('open-uploader'))">
-  Open Uploader
-</button>
+<button onclick="window.dispatchEvent(new Event('open-uploader'))">Open Uploader</button>
 
 <!-- Include the uploader component -->
 <x-uploader::popup />
+
+<!-- Include the uploader JS asset (required) -->
+<script src="{{ asset('vendor/uploader/popup.js') }}"></script>
 
 <!-- Listen for the files-uploaded event -->
 <script>
