@@ -24,6 +24,8 @@ trait InteractsWithStorage
                 'path' => $path,
                 'url' => Storage::url($path),
                 'type' => $file->getMimeType(),
+                'name' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
             ];
         }
 
