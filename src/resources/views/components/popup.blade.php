@@ -121,7 +121,7 @@
     </div>
 </div>
 <script>
-    window.LaravelUploader = @json([
+    window.LaravelUploader = {!! json_encode([
         'uploadUrl' => route('uploader.upload'),
         'csrfToken' => csrf_token(),
         'labels' => [
@@ -146,6 +146,6 @@
         'hasNext' => $hasNext,
         'hasPrev' => $hasPrev,
         'initialTab' => $initialTab,
-    ]);
+    ]) !!};
 </script>
 <script src="{{ asset('vendor/uploader/popup.js') }}"></script>
