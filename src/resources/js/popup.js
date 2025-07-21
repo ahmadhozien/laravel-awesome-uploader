@@ -42,74 +42,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let managerFiles = [];
     let selectedManagerFiles = new Set();
 
-    // Mock file manager data (replace with AJAX or backend data as needed)
-    function getMockFiles() {
-      return [
-        {
-          id: 1,
-          name: "image1.jpg",
-          size: 39,
-          type: "image",
-          url: "https://via.placeholder.com/120x90?text=1",
-        },
-        {
-          id: 2,
-          name: "image2.jpg",
-          size: 41,
-          type: "image",
-          url: "https://via.placeholder.com/120x90?text=2",
-        },
-        {
-          id: 3,
-          name: "image3.jpg",
-          size: 41,
-          type: "image",
-          url: "https://via.placeholder.com/120x90?text=3",
-        },
-        {
-          id: 4,
-          name: "image4.jpg",
-          size: 39,
-          type: "image",
-          url: "https://via.placeholder.com/120x90?text=4",
-        },
-        {
-          id: 5,
-          name: "document.pdf",
-          size: 240,
-          type: "pdf",
-          url: "https://via.placeholder.com/120x90?text=PDF",
-        },
-        {
-          id: 6,
-          name: "icon.png",
-          size: 795,
-          type: "image",
-          url: "https://via.placeholder.com/120x90?text=PNG",
-        },
-        {
-          id: 7,
-          name: "house.png",
-          size: 525,
-          type: "image",
-          url: "https://via.placeholder.com/120x90?text=Home",
-        },
-        {
-          id: 8,
-          name: "dress.png",
-          size: 750,
-          type: "image",
-          url: "https://via.placeholder.com/120x90?text=Dress",
-        },
-        {
-          id: 9,
-          name: "close.png",
-          size: 852,
-          type: "image",
-          url: "https://via.placeholder.com/120x90?text=Close",
-        },
-      ];
-    }
+    // No mock data; managerFiles starts empty and is filled after upload
 
     function addFiles(newFiles) {
       if (!allowMultiple) {
@@ -308,6 +241,29 @@ document.addEventListener("DOMContentLoaded", function () {
             });
             if (response.ok) {
               const result = await response.json();
+              // Add uploaded file(s) to managerFiles
+              if (Array.isArray(result)) {
+                managerFiles = managerFiles.concat(result);
+              } else if (result) {
+                managerFiles.push(result);
+              }
+              renderFileGrid();
+              // Switch to File Manager tab
+              tabButtons.forEach((b) =>
+                b.classList.remove("bg-gray-100", "text-gray-700")
+              );
+              tabButtons.forEach((b) => b.classList.add("text-gray-500"));
+              const managerTabBtn = document.querySelector(
+                '.uploader-tab[data-tab="manager"]'
+              );
+              if (managerTabBtn) {
+                managerTabBtn.classList.add("bg-gray-100", "text-gray-700");
+                managerTabBtn.classList.remove("text-gray-500");
+              }
+              tabContents.forEach((tc) => tc.classList.add("hidden"));
+              document
+                .getElementById("uploader-tab-manager")
+                .classList.remove("hidden");
               window.dispatchEvent(
                 new CustomEvent("files-uploaded", { detail: result })
               );
@@ -387,8 +343,7 @@ document.addEventListener("DOMContentLoaded", function () {
       renderFileGrid();
       updateSelectedCount();
     }
-    // Initial render for file manager
-    managerFiles = getMockFiles();
+    // Initial render for file manager (empty)
     renderFileGrid();
     updateSelectedCount();
   })();
