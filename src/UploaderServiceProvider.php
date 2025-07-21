@@ -4,6 +4,9 @@ namespace Hozien\Uploader;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Gate;
+use Hozien\Uploader\Models\Upload;
+use Hozien\Uploader\Policies\UploadPolicy;
 use function resource_path;
 use function app;
 
@@ -27,6 +30,10 @@ class UploaderServiceProvider extends ServiceProvider
             resource_path('views/vendor/uploader/components'),
             'uploader'
         );
+        // Register a Blade component alias for dot syntax usage
+        Blade::component('uploader::popup', 'uploader.popup');
+        // Register policy for Upload model
+        Gate::policy(Upload::class, UploadPolicy::class);
     }
 
     /**

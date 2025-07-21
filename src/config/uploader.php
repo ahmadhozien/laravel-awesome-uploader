@@ -69,6 +69,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | User/Admin/Query Resolvers
+    |--------------------------------------------------------------------------
+    |
+    | These closures allow you to customize how the uploader determines the
+    | current user, admin status, and which uploads to fetch. You can override
+    | these in your app's config/uploader.php for full flexibility.
+    |
+    */
+    'user_resolver' => function () {
+        return auth()->user();
+    },
+    'admin_resolver' => function ($user) {
+        return $user && property_exists($user, 'is_admin') && $user->is_admin;
+    },
+    'uploads_query' => function ($query, $user, $isAdmin) {
+        if ($isAdmin) {
+            return $query;
+        }
+        return $query->where('user_id', $user ? $user->id : null);
+    },
+
+    /*
+    |--------------------------------------------------------------------------
     | UI Modules
     |--------------------------------------------------------------------------
     |

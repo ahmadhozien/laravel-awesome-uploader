@@ -99,4 +99,17 @@ class UploadController extends Controller
                 : Response::json(['error' => 'Could not save file.'], 500);
         }
     }
+
+    public function index(Request $request)
+    {
+        $userResolver = Config::get('uploader.user_resolver');
+        $adminResolver = Config::get('uploader.admin_resolver');
+        $uploadsQuery = Config::get('uploader.uploads_query');
+        $user = $userResolver();
+        $isAdmin = $adminResolver($user);
+        $query = Upload::query();
+        $query = $uploadsQuery($query, $user, $isAdmin);
+        $uploads = $query->latest()->get();
+        return Response::json($uploads);
+    }
 }
