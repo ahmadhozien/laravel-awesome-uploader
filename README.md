@@ -228,3 +228,33 @@ export default {
   },
   ```
 - If `'allow_guests' => false`, guests will receive a 403 error if they try to upload.
+
+### JavaScript Events
+
+The uploader emits several custom JS events for easy integration:
+
+| Event Name        | When It Fires                        | Payload (event.detail)   |
+| ----------------- | ------------------------------------ | ------------------------ |
+| files-selected    | When files are selected (input/drag) | `{ files: [File, ...] }` |
+| upload-start      | When upload begins                   | `{ files: [File, ...] }` |
+| upload-success    | When upload completes successfully   | `{ response: ... }`      |
+| upload-error      | When upload fails                    | `{ error: ... }`         |
+| add-files-clicked | When "Add Files" is clicked          | `{ selected: [...] }`    |
+| modal-opened      | When the modal is opened             | `{}`                     |
+| modal-closed      | When the modal is closed             | `{}`                     |
+
+**Example usage:**
+
+```js
+window.addEventListener("files-selected", (event) => {
+  console.log("Files selected:", event.detail.files);
+});
+window.addEventListener("upload-success", (event) => {
+  console.log("Upload success:", event.detail.response);
+});
+window.addEventListener("add-files-clicked", (event) => {
+  console.log("Add files clicked:", event.detail.selected);
+});
+```
+
+You can use these events to trigger custom UI updates, analytics, or integrate with other parts of your app.

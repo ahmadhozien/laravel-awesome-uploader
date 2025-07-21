@@ -51,6 +51,10 @@ document.addEventListener("DOMContentLoaded", function () {
         files = [...files, ...Array.from(newFiles)];
       }
       renderFiles();
+      // Dispatch files-selected event
+      window.dispatchEvent(
+        new CustomEvent("files-selected", { detail: { files } })
+      );
     }
 
     function renderFiles() {
@@ -174,6 +178,12 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     if (addFilesBtn) {
       addFilesBtn.addEventListener("click", function () {
+        // Dispatch add-files-clicked event
+        window.dispatchEvent(
+          new CustomEvent("add-files-clicked", {
+            detail: { selected: Array.from(selectedManagerFiles) },
+          })
+        );
         // Dispatch selected files (mock)
         window.dispatchEvent(
           new CustomEvent("files-uploaded", {
@@ -213,12 +223,18 @@ document.addEventListener("DOMContentLoaded", function () {
       }, 10);
       document.body.style.overflow = "hidden";
       document.addEventListener("focus", trapFocus, true);
+      // Dispatch modal-opened event
+      window.dispatchEvent(new CustomEvent("modal-opened"));
 
       // Attach upload event each time modal is shown
       const uploadBtn = document.getElementById("uploader-upload-btn");
       if (uploadBtn) {
         uploadBtn.onclick = async function () {
           if (isUploading || files.length === 0) return;
+          // Dispatch upload-start event
+          window.dispatchEvent(
+            new CustomEvent("upload-start", { detail: { files } })
+          );
           isUploading = true;
           uploadText.classList.add("hidden");
           uploadingText.classList.remove("hidden");
@@ -268,15 +284,26 @@ document.addEventListener("DOMContentLoaded", function () {
                 .getElementById("uploader-tab-manager")
                 .classList.remove("hidden");
               window.dispatchEvent(
+                new CustomEvent("upload-success", {
+                  detail: { response: result },
+                })
+              );
+              window.dispatchEvent(
                 new CustomEvent("files-uploaded", { detail: result })
               );
               files = [];
               renderFiles();
               // Do NOT close the modal here
             } else {
+              window.dispatchEvent(
+                new CustomEvent("upload-error", { detail: { error: response } })
+              );
               alert("Upload failed");
             }
           } catch (error) {
+            window.dispatchEvent(
+              new CustomEvent("upload-error", { detail: { error } })
+            );
             alert("An error occurred: " + error);
           } finally {
             isUploading = false;
@@ -298,6 +325,8 @@ document.addEventListener("DOMContentLoaded", function () {
         resetUploader();
         document.removeEventListener("focus", trapFocus, true);
         if (lastFocusedElement) lastFocusedElement.focus();
+        // Dispatch modal-closed event
+        window.dispatchEvent(new CustomEvent("modal-closed"));
       }, 200);
     }
     closeBtn.addEventListener("click", closeModal);
