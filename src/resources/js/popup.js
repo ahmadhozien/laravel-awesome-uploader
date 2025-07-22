@@ -202,7 +202,7 @@ document.addEventListener("DOMContentLoaded", function () {
           selectedManagerFiles.has(f.id)
         );
       }
-      visibleFiles.forEach((file) => {
+      visibleFiles.forEach((file, idx) => {
         const card = document.createElement("div");
         card.className =
           "relative rounded-xl border bg-white shadow hover:shadow-lg transition cursor-pointer flex flex-col items-center p-2 group" +
@@ -223,15 +223,28 @@ document.addEventListener("DOMContentLoaded", function () {
                 <div class="w-full text-center text-xs text-gray-700 truncate">${
                   file.name
                 }</div>
-                <div class="w-full text-center text-[11px] text-gray-400">KB ${
-                  file.size
-                }</div>
+                <div class="w-full text-center text-[11px] text-gray-400">${formatFileSize(
+                  file.size || 0
+                )}</div>
                 <div class="absolute top-2 left-2">
                     <span class="inline-block w-4 h-4 rounded-full border border-gray-300 bg-white ${
                       selectedManagerFiles.has(file.id)
                         ? "bg-blue-500 border-blue-500"
                         : ""
                     }"></span>
+                </div>
+                <button class="absolute top-2 right-2 z-10 uploader-ellipsis-btn p-1 rounded-full hover:bg-gray-100 focus:outline-none" aria-label="Options">
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2" fill="#888"/><circle cx="12" cy="12" r="2" fill="#888"/><circle cx="19" cy="12" r="2" fill="#888"/></svg>
+                </button>
+                <div class="uploader-options-menu hidden absolute top-8 right-2 min-w-[160px] bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-20 text-sm rtl:right-auto rtl:left-2">
+                  ${file.permissions && file.permissions.view ? '<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 uploader-info-btn flex items-center gap-2">' +
+                    '<svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8H6a2 2 0 01-2-2V6a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg>File Info</button>' : ''}
+                  ${file.permissions && file.permissions.download ? `<a class="block w-full text-left px-4 py-2 hover:bg-gray-100 uploader-download-btn flex items-center gap-2" href="${file.url}" download target="_blank">` +
+                    '<svg class="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>Download</a>' : ''}
+                  ${file.permissions && file.permissions.download ? '<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 uploader-copy-btn flex items-center gap-2">' +
+                    '<svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="13" height="13" x="9" y="9" rx="2"/><path d="M5 15V5a2 2 0 012-2h10a2 2 0 012 2v10"/></svg>Copy Link</button>' : ''}
+                  ${file.permissions && file.permissions.delete ? '<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 uploader-delete-btn flex items-center gap-2">' +
+                    '<svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Delete</button>' : ''}
                 </div>
             `;
         card.addEventListener("click", function () {
@@ -249,6 +262,107 @@ document.addEventListener("DOMContentLoaded", function () {
             card.click();
           }
         });
+        // Add menu logic
+        const ellipsisBtn = card.querySelector(".uploader-ellipsis-btn");
+        const menu = card.querySelector(".uploader-options-menu");
+        ellipsisBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          // Close all other menus
+          document.querySelectorAll(".uploader-options-menu").forEach((m) => {
+            if (m !== menu) m.classList.add("hidden");
+          });
+          menu.classList.toggle("hidden");
+        });
+        // Close menu on click outside
+        document.addEventListener("click", function (e) {
+          if (!card.contains(e.target)) menu.classList.add("hidden");
+        });
+        // Only add event listeners for visible menu items
+        if (file.permissions && file.permissions.view) {
+          menu
+            .querySelector(".uploader-info-btn")
+            .addEventListener("click", function (e) {
+              e.stopPropagation();
+              menu.classList.add("hidden");
+              // Render only important file info as key-value table with user-friendly labels and modern design
+              const keyLabels = {
+                name: "File Name",
+                type: "Type",
+                size: "Size",
+                url: "URL",
+                created_at: "Uploaded",
+                updated_at: "Last Updated",
+              };
+              const importantKeys = [
+                "name",
+                "type",
+                "size",
+                "url",
+                "created_at",
+                "updated_at",
+              ];
+              let html = '<div class="space-y-2">';
+              importantKeys.forEach((key) => {
+                let value = file[key];
+                if (key === "size") value = formatFileSize(value || 0);
+                html += `<div class='flex items-start border-b last:border-b-0 border-gray-100 pb-2'><div class='w-32 font-semibold text-gray-700'>${
+                  keyLabels[key] || key
+                }:</div><div class='flex-1 break-all text-gray-900'>${
+                  value ?? ""
+                }</div></div>`;
+              });
+              html += "</div>";
+              infoContent.innerHTML = html;
+              infoModal.classList.remove("hidden");
+            });
+        }
+        if (file.permissions && file.permissions.download) {
+          if (menu.querySelector(".uploader-copy-btn")) {
+            menu
+              .querySelector(".uploader-copy-btn")
+              .addEventListener("click", function (e) {
+                e.stopPropagation();
+                menu.classList.add("hidden");
+                navigator.clipboard.writeText(file.url).then(() => {
+                  ellipsisBtn.blur();
+                });
+              });
+          }
+        }
+        if (file.permissions && file.permissions.delete) {
+          menu
+            .querySelector(".uploader-delete-btn")
+            .addEventListener("click", function (e) {
+              e.stopPropagation();
+              menu.classList.add("hidden");
+              deleteModal.classList.remove("hidden");
+              deleteFileCallback = async function () {
+                try {
+                  const response = await fetch(`/api/uploads/${file.id}`, {
+                    method: "DELETE",
+                    headers: {
+                      "X-CSRF-TOKEN": csrfToken,
+                      Accept: "application/json",
+                    },
+                  });
+                  if (response.ok) {
+                    managerFiles = managerFiles.filter((f) => f.id !== file.id);
+                    renderFileGrid();
+                    updateSelectedCount();
+                  } else if (response.status === 403) {
+                    showError(
+                      "You do not have permission to delete this file."
+                    );
+                  } else {
+                    const data = await response.json();
+                    showError(data.error || "Failed to delete file.");
+                  }
+                } catch (err) {
+                  showError("Error deleting file: " + err);
+                }
+              };
+            });
+        }
         fileGrid.appendChild(card);
       });
       renderFooterButtons();
@@ -329,6 +443,9 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
     window.addEventListener("open-uploader", function () {
+      // Show loader
+      const gridLoader = document.getElementById("uploader-file-grid-loader");
+      if (gridLoader) gridLoader.classList.remove("hidden");
       lastFocusedElement = document.activeElement;
       modal.style.display = "flex";
       setTimeout(() => {
@@ -354,6 +471,8 @@ document.addEventListener("DOMContentLoaded", function () {
           managerFiles = Array.isArray(data) ? data : [];
           renderFileGrid();
           updateSelectedCount();
+          // Hide loader after files are loaded
+          if (gridLoader) gridLoader.classList.add("hidden");
         });
 
       // Attach upload event each time modal is shown
@@ -544,6 +663,74 @@ document.addEventListener("DOMContentLoaded", function () {
     // Initial render for file manager (empty)
     renderFileGrid();
     updateSelectedCount();
+
+    // Add file info modal to the DOM if not present
+    if (!document.getElementById("uploader-file-info-modal")) {
+      const infoModal = document.createElement("div");
+      infoModal.id = "uploader-file-info-modal";
+      infoModal.className =
+        "fixed inset-0 z-50 flex items-center justify-center bg-black/40 hidden";
+      infoModal.innerHTML = `
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative">
+          <button id="uploader-file-info-close" class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl font-bold focus:outline-none">&times;</button>
+          <h2 class="text-lg font-semibold mb-4">File Info</h2>
+          <div id="uploader-file-info-content" class="space-y-2"></div>
+        </div>
+      `;
+      document.body.appendChild(infoModal);
+      document.getElementById("uploader-file-info-close").onclick =
+        function () {
+          infoModal.classList.add("hidden");
+        };
+      infoModal.addEventListener("click", function (e) {
+        if (e.target === infoModal) infoModal.classList.add("hidden");
+      });
+    }
+    const infoModal = document.getElementById("uploader-file-info-modal");
+    const infoContent = document.getElementById("uploader-file-info-content");
+
+    // Add delete confirmation modal to the DOM if not present
+    if (!document.getElementById("uploader-delete-modal")) {
+      const deleteModal = document.createElement("div");
+      deleteModal.id = "uploader-delete-modal";
+      deleteModal.className =
+        "fixed inset-0 z-50 flex items-center justify-center bg-black/40 hidden";
+      deleteModal.innerHTML = `
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative">
+          <button id="uploader-delete-close" class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl font-bold focus:outline-none">&times;</button>
+          <h2 class="text-lg font-semibold mb-4">Delete File</h2>
+          <div class="mb-6">Are you sure you want to delete this file?</div>
+          <div class="flex justify-end gap-2">
+            <button id="uploader-delete-cancel" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
+            <button id="uploader-delete-ok" class="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 flex items-center gap-2"><span>OK</span><svg id="uploader-delete-spinner" class="hidden animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg></button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(deleteModal);
+      document.getElementById("uploader-delete-close").onclick = function () {
+        deleteModal.classList.add("hidden");
+      };
+      document.getElementById("uploader-delete-cancel").onclick = function () {
+        deleteModal.classList.add("hidden");
+      };
+      deleteModal.addEventListener("click", function (e) {
+        if (e.target === deleteModal) deleteModal.classList.add("hidden");
+      });
+    }
+    const deleteModal = document.getElementById("uploader-delete-modal");
+    const deleteOkBtn = document.getElementById("uploader-delete-ok");
+    const deleteSpinner = document.getElementById("uploader-delete-spinner");
+    let deleteFileCallback = null;
+    deleteOkBtn.onclick = async function () {
+      if (!deleteFileCallback) return;
+      deleteOkBtn.disabled = true;
+      deleteSpinner.classList.remove("hidden");
+      await deleteFileCallback();
+      deleteOkBtn.disabled = false;
+      deleteSpinner.classList.add("hidden");
+      deleteModal.classList.add("hidden");
+      deleteFileCallback = null;
+    };
   })();
 });
 

@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Config;
 use Hozien\Uploader\Models\Upload;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class UploadController extends Controller
 {
@@ -38,7 +40,7 @@ class UploadController extends Controller
     {
         $allowGuests = Config::get('uploader.allow_guests', false);
         $guestToken = $request->input('guest_token') ?: (Config::get('uploader.guest_token_resolver'))();
-        if (!$allowGuests && !auth()->check()) {
+        if (!$allowGuests && !Auth::check()) {
             return Response::json(['error' => 'Login required'], 403);
         }
         $multiple = $request->input('multiple', false) || $request->hasFile('files');
@@ -64,8 +66,8 @@ class UploadController extends Controller
                         'type' => $result['type'],
                         'name' => $result['name'],
                         'size' => $result['size'],
-                        'user_id' => auth()->id(),
-                        'guest_token' => auth()->check() ? null : $guestToken,
+                        'user_id' => Auth::id(),
+                        'guest_token' => Auth::check() ? null : $guestToken,
                     ]);
                     $result['id'] = $upload->id;
                 }
@@ -96,8 +98,8 @@ class UploadController extends Controller
                     'type' => $result['type'],
                     'name' => $result['name'],
                     'size' => $result['size'],
-                    'user_id' => auth()->id(),
-                    'guest_token' => auth()->check() ? null : $guestToken,
+                    'user_id' => Auth::id(),
+                    'guest_token' => Auth::check() ? null : $guestToken,
                 ]);
                 $result['id'] = $upload->id;
             }
@@ -123,6 +125,36 @@ class UploadController extends Controller
             $query = $uploadsQuery($query, $user, $isAdmin);
         }
         $uploads = $query->latest()->get();
+        $user = Auth::user();
+        $uploads = $uploads->map(function ($upload) use ($guestToken) {
+            return array_merge($upload->toArray(), [
+                'permissions' => [
+                    'view' => Gate::allows('view', [$upload, $guestToken]),
+                    'delete' => Gate::allows('delete', [$upload, $guestToken]),
+                    'download' => Gate::allows('view', [$upload, $guestToken]),
+                ],
+            ]);
+        });
         return Response::json($uploads);
+    }
+
+    public function destroy($id, Request $request)
+    {
+        $upload = Upload::find($id);
+        if (!$upload) {
+            return Response::json(['error' => 'File not found.'], 404);
+        }
+        // Check permissions
+        if (!Auth::check()) {
+            return Response::json(['error' => 'Unauthorized.'], 403);
+        }
+        $this->authorize('delete', $upload);
+        $softDeletes = Config::get('uploader.soft_deletes', true);
+        if ($softDeletes) {
+            $upload->delete();
+        } else {
+            $upload->forceDelete();
+        }
+        return Response::json(['success' => true]);
     }
 }
