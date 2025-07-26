@@ -51,6 +51,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const initialTab = config.initialTab || "manager";
     const allowMultiple = config.multiple !== false;
     const guestToken = config.guestToken;
+    const enableLogging = config.enableLogging !== false;
 
     let files = [];
     let isUploading = false;
@@ -136,6 +137,19 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         }, 300);
       }, 2000);
+    }
+
+    // Logging helper functions
+    function log(...args) {
+      if (enableLogging) {
+        console.log(...args);
+      }
+    }
+
+    function logError(...args) {
+      if (enableLogging) {
+        console.error(...args);
+      }
     }
 
     function addFiles(newFiles) {
@@ -233,10 +247,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // File manager rendering and selection
     function renderFileGrid() {
-      console.log("Rendering file grid with files:", managerFiles);
-      console.log("File grid element:", fileGrid);
+      log("Rendering file grid with files:", managerFiles);
+      log("File grid element:", fileGrid);
       if (!fileGrid) {
-        console.error("File grid element not found!");
+        logError("File grid element not found!");
         return;
       }
       fileGrid.innerHTML = "";
@@ -260,9 +274,9 @@ document.addEventListener("DOMContentLoaded", function () {
           selectedManagerFiles.has(f.id)
         );
       }
-      console.log("Visible files to render:", visibleFiles);
+      log("Visible files to render:", visibleFiles);
       visibleFiles.forEach((file, idx) => {
-        console.log("Rendering file:", file);
+        log("Rendering file:", file);
         const card = document.createElement("div");
         card.className =
           "relative rounded-xl border bg-white shadow hover:shadow-lg transition cursor-pointer flex flex-col items-center p-2 group" +
@@ -406,7 +420,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     showCopySuccess();
                   })
                   .catch((err) => {
-                    console.error("Failed to copy URL:", err);
+                    logError("Failed to copy URL:", err);
                     // Fallback: show the URL in an alert
                     alert("URL copied to clipboard:\n" + file.url);
                   });
@@ -553,8 +567,8 @@ document.addEventListener("DOMContentLoaded", function () {
         url += "?guest_token=" + encodeURIComponent(guestToken);
       }
 
-      console.log("Fetching uploads from URL:", url);
-      console.log("Guest token:", guestToken);
+      log("Fetching uploads from URL:", url);
+      log("Guest token:", guestToken);
       fetch(url)
         .then((res) => {
           if (!res.ok) {
@@ -563,7 +577,7 @@ document.addEventListener("DOMContentLoaded", function () {
           return res.json();
         })
         .then((response) => {
-          console.log("API Response:", response);
+          log("API Response:", response);
           // Handle paginated response
           if (response && response.data && Array.isArray(response.data)) {
             managerFiles = response.data;
@@ -572,14 +586,14 @@ document.addEventListener("DOMContentLoaded", function () {
           } else {
             managerFiles = [];
           }
-          console.log("Manager files:", managerFiles);
+          log("Manager files:", managerFiles);
           renderFileGrid();
           updateSelectedCount();
           // Hide loader after files are loaded
           if (gridLoader) gridLoader.classList.add("hidden");
         })
         .catch((error) => {
-          console.error("Error fetching uploads:", error);
+          logError("Error fetching uploads:", error);
           // Hide loader on error
           if (gridLoader) gridLoader.classList.add("hidden");
           // Show error message
@@ -614,8 +628,8 @@ document.addEventListener("DOMContentLoaded", function () {
             formData.append("guest_token", guestToken);
           }
           try {
-            console.log("Uploading to URL:", uploadUrl);
-            console.log("FormData contents:", Array.from(formData.entries()));
+            log("Uploading to URL:", uploadUrl);
+            log("FormData contents:", Array.from(formData.entries()));
 
             const response = await fetch(uploadUrl, {
               method: "POST",
@@ -626,8 +640,8 @@ document.addEventListener("DOMContentLoaded", function () {
               },
             });
 
-            console.log("Response status:", response.status);
-            console.log(
+            log("Response status:", response.status);
+            log(
               "Response headers:",
               Object.fromEntries(response.headers.entries())
             );
@@ -694,16 +708,16 @@ document.addEventListener("DOMContentLoaded", function () {
                   errorMsg = errorData.error;
                 }
               } catch (e) {
-                console.error("JSON parsing error:", e);
+                logError("JSON parsing error:", e);
                 // If JSON parsing fails, try to get text response
                 try {
                   const textResponse = await response.text();
-                  console.error("Non-JSON response received:", textResponse);
-                  console.error("Response status:", response.status);
-                  console.error("Response URL:", response.url);
+                  logError("Non-JSON response received:", textResponse);
+                  logError("Response status:", response.status);
+                  logError("Response URL:", response.url);
                   errorMsg = "Server returned invalid response format";
                 } catch (textError) {
-                  console.error("Failed to get text response:", textError);
+                  logError("Failed to get text response:", textError);
                   errorMsg = "Failed to parse server response";
                 }
               }

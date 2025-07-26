@@ -104,7 +104,7 @@ UPLOADER_AUTO_CLEANUP=false
 UPLOADER_CLEANUP_DAYS=30
 
 # Logging
-UPLOADER_ENABLE_LOGGING=true
+UPLOADER_ENABLE_LOGGING=false
 UPLOADER_LOG_CHANNEL=daily
 ```
 
@@ -158,6 +158,71 @@ return [
         return $query->where('user_id', $user ? $user->id : null);
     },
 ];
+```
+
+### Logging Configuration
+
+The uploader provides comprehensive logging for both backend and frontend operations. You can control logging behavior through environment variables:
+
+#### Backend Logging
+
+Backend logging is controlled by Laravel's logging system and the uploader's configuration:
+
+```env
+# Enable/disable uploader-specific logging (default: false)
+UPLOADER_ENABLE_LOGGING=false
+
+# Laravel log channel for uploader logs (default: daily)
+UPLOADER_LOG_CHANNEL=daily
+```
+
+**Backend Logging Features:**
+
+- Upload attempts and results
+- File validation errors
+- Duplicate detection
+- Image processing operations
+- Guest token management
+- Permission checks
+- Error tracking and debugging
+
+#### Frontend Logging
+
+Frontend console logging is also controlled by the `UPLOADER_ENABLE_LOGGING` setting:
+
+**When `UPLOADER_ENABLE_LOGGING=true`:**
+
+- API request/response logging
+- File upload progress
+- Error details and debugging
+- Guest token operations
+- Permission checks
+- File manager operations
+
+**When `UPLOADER_ENABLE_LOGGING=false` (default):**
+
+- Silent operation
+- No console output
+- Clean production environment
+
+#### Logging Best Practices
+
+```env
+# Development environment - enable detailed logging
+UPLOADER_ENABLE_LOGGING=true
+UPLOADER_LOG_CHANNEL=daily
+
+# Production environment - disable logging for performance
+UPLOADER_ENABLE_LOGGING=false
+UPLOADER_LOG_CHANNEL=daily
+```
+
+**Example Log Output:**
+
+```
+[2025-07-26 22:42:20] uploader.INFO: File uploaded successfully {"file":"example.jpg","size":26020,"user_id":null,"guest_token":"guest-abc123"}
+[2025-07-26 22:42:21] uploader.INFO: Thumbnails generated for example.jpg {"thumbnails":["150x150","300x300","600x600"]}
+[2025-07-26 22:42:22] uploader.WARNING: Duplicate file detected {"existing_file":"example.jpg","new_file":"example.jpg","hash":"abc123"}
 ```
 
 ## Usage

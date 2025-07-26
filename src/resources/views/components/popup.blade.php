@@ -175,6 +175,7 @@
         'hasNext' => $hasNext,
         'hasPrev' => $hasPrev,
         'initialTab' => $initialTab,
+        'enableLogging' => config('uploader.enable_logging', true),
     ]) !!};
 </script>
 <script src="{{ asset('vendor/uploader/popup.js') }}"></script>

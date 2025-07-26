@@ -46,6 +46,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Permission Debugging**: Added debug information for permission checking
 - **Response Format Validation**: Better handling of paginated vs flat array responses
 
+### 🔧 Additional Fixes
+
+- **Fixed Guest User Permissions**: Resolved issue where guest users couldn't access options for their uploads
+- **Fixed Delete Authorization**: Updated destroy method to properly handle guest user authorization
+- **Fixed Clipboard API Error**: Added fallback clipboard functionality for non-secure contexts (HTTP domains)
+- **Enhanced Database Storage**: Changed default `save_to_db` setting to `true` for better guest upload support
+- **Improved Token Debugging**: Added comprehensive debug information for guest token matching and comparison
+- **Fixed Console Logging**: Made frontend console logging configurable via `UPLOADER_ENABLE_LOGGING` environment variable (defaults to `false`)
+
 ## [1.0.0] - 2025-07-01
 
 ### 🚀 Production-Ready Enterprise Features

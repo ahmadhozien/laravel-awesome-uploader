@@ -198,6 +198,6 @@ return [
     | Enable detailed logging for debugging upload issues.
     |
     */
-    'enable_logging' => env('UPLOADER_ENABLE_LOGGING', true),
+    'enable_logging' => env('UPLOADER_ENABLE_LOGGING', false),
     'log_channel' => env('UPLOADER_LOG_CHANNEL', 'daily'), // Laravel log channel
 ];
