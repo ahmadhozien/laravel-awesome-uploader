@@ -7,7 +7,7 @@ Route::group(['middleware' => 'web'], function () {
     Route::get('/uploader', [UploadController::class, 'show'])->name('uploader.show');
 });
 
-Route::group(['middleware' => 'api', 'prefix' => 'api/uploader'], function () {
+Route::group(['middleware' => ['api', 'json'], 'prefix' => 'api/uploader'], function () {
     // File upload endpoints
     Route::post('/upload', [UploadController::class, 'upload'])->name('uploader.upload');
 

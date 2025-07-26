@@ -17,6 +17,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bulk operations API
 - Advanced permission systems
 
+## [1.0.2] - 2025-07-26
+
+### 🐛 Bug Fixes
+
+- **Fixed JSON Parsing Error**: Resolved "JSON.parse: unexpected character" error when server returns non-JSON responses
+- **Fixed Route URL Mismatch**: Corrected hardcoded API URLs in JavaScript components (Vue, React, popup.js)
+- **Fixed Pagination Data Extraction**: Fixed file manager not displaying files due to incorrect handling of paginated API responses
+- **Enhanced Error Handling**: Added comprehensive error handling and debugging for better troubleshooting
+- **Added JSON Response Middleware**: Created `EnsureJsonResponse` middleware to guarantee JSON responses from API endpoints
+
+### 🔧 Technical Improvements
+
+- **Enhanced JavaScript Debugging**: Added detailed console logging for API requests and responses
+- **Improved Error Messages**: Better error messages for debugging upload and file management issues
+- **Fixed Guest Token Handling**: Improved guest token validation and permission checking
+- **Added Response Validation**: Better handling of different response formats and error states
+
+### 📝 Documentation
+
+- **Updated API Documentation**: Corrected API endpoint URLs in documentation
+- **Added Debugging Guide**: Comprehensive troubleshooting guide for common issues
+- **Enhanced Error Handling Documentation**: Better documentation for error scenarios
+
+### 🔍 Debugging Features
+
+- **Console Logging**: Added detailed logging for API requests, responses, and file operations
+- **Permission Debugging**: Added debug information for permission checking
+- **Response Format Validation**: Better handling of paginated vs flat array responses
+
 ## [1.0.0] - 2025-07-01
 
 ### 🚀 Production-Ready Enterprise Features

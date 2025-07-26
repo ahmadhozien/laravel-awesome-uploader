@@ -4,7 +4,7 @@
     "keywords": ["laravel", "file-upload", "uploader", "blade", "react", "vue", "thumbnails", "deduplication", "enterprise"],
     "type": "laravel-package",
     "license": "MIT",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "authors": [
         {
             "name": "Hozien",
@@ -62,7 +62,8 @@
             }
         },
         "branch-alias": {
-            "dev-main": "1.0-dev"
+            "dev-main": "1.0-dev",
+            "dev-1.0": "1.0-dev"
         }
     },
     "config": {

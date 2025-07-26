@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Config;
 use Hozien\Uploader\Models\Upload;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 
 class UploadController extends Controller
 {
@@ -44,31 +45,43 @@ class UploadController extends Controller
      */
     public function upload(Request $request)
     {
-        // Check guest upload permissions
-        $allowGuests = Config::get('uploader.allow_guests', false);
-        if (!$allowGuests && !Auth::check()) {
-            return Response::json(['errors' => ['Login required']], 403);
-        }
-
-        // Get upload options
-        $multiple = $request->boolean('multiple', false) || $request->hasFile('files');
-        $saveToDb = $request->boolean('saveToDb', Config::get('uploader.save_to_db', false));
-        $guestToken = $request->input('guest_token') ?: (Config::get('uploader.guest_token_resolver'))();
-
-        // Check guest upload limits
-        if (!Auth::check() && $allowGuests) {
-            $guestLimit = Config::get('uploader.guest_upload_limit', 10);
-            $currentCount = Upload::where('guest_token', $guestToken)->count();
-
-            if ($currentCount >= $guestLimit) {
-                return Response::json(['errors' => ['Guest upload limit exceeded']], 429);
+        try {
+            // Check guest upload permissions
+            $allowGuests = Config::get('uploader.allow_guests', false);
+            if (!$allowGuests && !Auth::check()) {
+                return Response::json(['errors' => ['Login required']], 403);
             }
-        }
 
-        if ($multiple) {
-            return $this->handleMultipleUpload($request, $saveToDb, $guestToken);
-        } else {
-            return $this->handleSingleUpload($request, $saveToDb, $guestToken);
+            // Get upload options
+            $multiple = $request->boolean('multiple', false) || $request->hasFile('files');
+            $saveToDb = $request->boolean('saveToDb', Config::get('uploader.save_to_db', false));
+            $guestToken = $request->input('guest_token') ?: (Config::get('uploader.guest_token_resolver'))();
+
+            // Check guest upload limits
+            if (!Auth::check() && $allowGuests) {
+                $guestLimit = Config::get('uploader.guest_upload_limit', 10);
+                $currentCount = Upload::where('guest_token', $guestToken)->count();
+
+                if ($currentCount >= $guestLimit) {
+                    return Response::json(['errors' => ['Guest upload limit exceeded']], 429);
+                }
+            }
+
+            if ($multiple) {
+                return $this->handleMultipleUpload($request, $saveToDb, $guestToken);
+            } else {
+                return $this->handleSingleUpload($request, $saveToDb, $guestToken);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Upload error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+
+            return Response::json([
+                'errors' => ['An unexpected error occurred during upload'],
+                'debug' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
     }
 
@@ -266,13 +279,25 @@ class UploadController extends Controller
         // Add permissions to each upload
         $uploads->getCollection()->transform(function ($upload) use ($guestToken) {
             $uploadArray = $upload->toArray();
+
+            // Debug permissions
+            $viewPermission = Gate::allows('view', [$upload, $guestToken]);
+            $deletePermission = Gate::allows('delete', [$upload, $guestToken]);
+
             $uploadArray['permissions'] = [
-                'view' => Gate::allows('view', [$upload, $guestToken]),
-                'delete' => Gate::allows('delete', [$upload, $guestToken]),
-                'download' => Gate::allows('view', [$upload, $guestToken]),
+                'view' => $viewPermission,
+                'delete' => $deletePermission,
+                'download' => $viewPermission,
             ];
             $uploadArray['formatted_size'] = $upload->formatted_size;
             $uploadArray['is_image'] = $upload->is_image;
+
+            // Add debug info
+            $uploadArray['debug'] = [
+                'guest_token_match' => $upload->guest_token === $guestToken,
+                'upload_guest_token' => $upload->guest_token,
+                'request_guest_token' => $guestToken,
+            ];
 
             return $uploadArray;
         });

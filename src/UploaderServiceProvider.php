@@ -15,7 +15,7 @@ class UploaderServiceProvider extends ServiceProvider
     /**
      * Package version.
      */
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.0.2';
 
     /**
      * Bootstrap any application services.
@@ -30,6 +30,7 @@ class UploaderServiceProvider extends ServiceProvider
         $this->registerBladeComponents();
         $this->registerPolicies();
         $this->registerCommands();
+        $this->registerMiddleware();
     }
 
     /**
@@ -115,6 +116,16 @@ class UploaderServiceProvider extends ServiceProvider
                 \Hozien\Uploader\Console\Commands\UploaderStatusCommand::class,
             ]);
         }
+    }
+
+    /**
+     * Register package middleware.
+     *
+     * @return void
+     */
+    protected function registerMiddleware()
+    {
+        $this->app['router']->aliasMiddleware('json', \Hozien\Uploader\Http\Middleware\EnsureJsonResponse::class);
     }
 
     /**

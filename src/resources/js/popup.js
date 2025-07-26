@@ -181,6 +181,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // File manager rendering and selection
     function renderFileGrid() {
+      console.log("Rendering file grid with files:", managerFiles);
+      console.log("File grid element:", fileGrid);
+      if (!fileGrid) {
+        console.error("File grid element not found!");
+        return;
+      }
       fileGrid.innerHTML = "";
       let visibleFiles = managerFiles;
       // Search filter
@@ -202,7 +208,9 @@ document.addEventListener("DOMContentLoaded", function () {
           selectedManagerFiles.has(f.id)
         );
       }
+      console.log("Visible files to render:", visibleFiles);
       visibleFiles.forEach((file, idx) => {
+        console.log("Rendering file:", file);
         const card = document.createElement("div");
         card.className =
           "relative rounded-xl border bg-white shadow hover:shadow-lg transition cursor-pointer flex flex-col items-center p-2 group" +
@@ -237,14 +245,30 @@ document.addEventListener("DOMContentLoaded", function () {
                   <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2" fill="#888"/><circle cx="12" cy="12" r="2" fill="#888"/><circle cx="19" cy="12" r="2" fill="#888"/></svg>
                 </button>
                 <div class="uploader-options-menu hidden absolute top-8 right-2 min-w-[160px] bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-20 text-sm rtl:right-auto rtl:left-2">
-                  ${file.permissions && file.permissions.view ? '<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 uploader-info-btn flex items-center gap-2">' +
-                    '<svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8H6a2 2 0 01-2-2V6a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg>File Info</button>' : ''}
-                  ${file.permissions && file.permissions.download ? `<a class="block w-full text-left px-4 py-2 hover:bg-gray-100 uploader-download-btn flex items-center gap-2" href="${file.url}" download target="_blank">` +
-                    '<svg class="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>Download</a>' : ''}
-                  ${file.permissions && file.permissions.download ? '<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 uploader-copy-btn flex items-center gap-2">' +
-                    '<svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="13" height="13" x="9" y="9" rx="2"/><path d="M5 15V5a2 2 0 012-2h10a2 2 0 012 2v10"/></svg>Copy Link</button>' : ''}
-                  ${file.permissions && file.permissions.delete ? '<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 uploader-delete-btn flex items-center gap-2">' +
-                    '<svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Delete</button>' : ''}
+                  ${
+                    file.permissions && file.permissions.view
+                      ? '<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 uploader-info-btn flex items-center gap-2">' +
+                        '<svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8H6a2 2 0 01-2-2V6a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg>File Info</button>'
+                      : ""
+                  }
+                  ${
+                    file.permissions && file.permissions.download
+                      ? `<a class="block w-full text-left px-4 py-2 hover:bg-gray-100 uploader-download-btn flex items-center gap-2" href="${file.url}" download target="_blank">` +
+                        '<svg class="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>Download</a>'
+                      : ""
+                  }
+                  ${
+                    file.permissions && file.permissions.download
+                      ? '<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 uploader-copy-btn flex items-center gap-2">' +
+                        '<svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="13" height="13" x="9" y="9" rx="2"/><path d="M5 15V5a2 2 0 012-2h10a2 2 0 012 2v10"/></svg>Copy Link</button>'
+                      : ""
+                  }
+                  ${
+                    file.permissions && file.permissions.delete
+                      ? '<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 uploader-delete-btn flex items-center gap-2">' +
+                        '<svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Delete</button>'
+                      : ""
+                  }
                 </div>
             `;
         card.addEventListener("click", function () {
@@ -338,13 +362,16 @@ document.addEventListener("DOMContentLoaded", function () {
               deleteModal.classList.remove("hidden");
               deleteFileCallback = async function () {
                 try {
-                  const response = await fetch(`/api/uploads/${file.id}`, {
-                    method: "DELETE",
-                    headers: {
-                      "X-CSRF-TOKEN": csrfToken,
-                      Accept: "application/json",
-                    },
-                  });
+                  const response = await fetch(
+                    `/api/uploader/uploads/${file.id}`,
+                    {
+                      method: "DELETE",
+                      headers: {
+                        "X-CSRF-TOKEN": csrfToken,
+                        Accept: "application/json",
+                      },
+                    }
+                  );
                   if (response.ok) {
                     managerFiles = managerFiles.filter((f) => f.id !== file.id);
                     renderFileGrid();
@@ -461,18 +488,42 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Fetch previous uploads for this user/guest
       const guestToken = window.LaravelUploader.guestToken;
-      let url = "/api/uploads";
+      let url = "/api/uploader/uploads";
       if (guestToken) {
         url += "?guest_token=" + encodeURIComponent(guestToken);
       }
+
+      console.log("Fetching uploads from URL:", url);
+      console.log("Guest token:", guestToken);
       fetch(url)
-        .then((res) => res.json())
-        .then((data) => {
-          managerFiles = Array.isArray(data) ? data : [];
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then((response) => {
+          console.log("API Response:", response);
+          // Handle paginated response
+          if (response && response.data && Array.isArray(response.data)) {
+            managerFiles = response.data;
+          } else if (Array.isArray(response)) {
+            managerFiles = response;
+          } else {
+            managerFiles = [];
+          }
+          console.log("Manager files:", managerFiles);
           renderFileGrid();
           updateSelectedCount();
           // Hide loader after files are loaded
           if (gridLoader) gridLoader.classList.add("hidden");
+        })
+        .catch((error) => {
+          console.error("Error fetching uploads:", error);
+          // Hide loader on error
+          if (gridLoader) gridLoader.classList.add("hidden");
+          // Show error message
+          showError("Failed to load files: " + error.message);
         });
 
       // Attach upload event each time modal is shown
@@ -503,6 +554,9 @@ document.addEventListener("DOMContentLoaded", function () {
             formData.append("guest_token", guestToken);
           }
           try {
+            console.log("Uploading to URL:", uploadUrl);
+            console.log("FormData contents:", Array.from(formData.entries()));
+
             const response = await fetch(uploadUrl, {
               method: "POST",
               body: formData,
@@ -511,6 +565,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 Accept: "application/json",
               },
             });
+
+            console.log("Response status:", response.status);
+            console.log(
+              "Response headers:",
+              Object.fromEntries(response.headers.entries())
+            );
             if (response.ok) {
               const result = await response.json();
               // Add uploaded file(s) to managerFiles
@@ -573,7 +633,20 @@ document.addEventListener("DOMContentLoaded", function () {
                 } else if (errorData && errorData.error) {
                   errorMsg = errorData.error;
                 }
-              } catch (e) {}
+              } catch (e) {
+                console.error("JSON parsing error:", e);
+                // If JSON parsing fails, try to get text response
+                try {
+                  const textResponse = await response.text();
+                  console.error("Non-JSON response received:", textResponse);
+                  console.error("Response status:", response.status);
+                  console.error("Response URL:", response.url);
+                  errorMsg = "Server returned invalid response format";
+                } catch (textError) {
+                  console.error("Failed to get text response:", textError);
+                  errorMsg = "Failed to parse server response";
+                }
+              }
               // Only show global error if not a file-specific error
               if (Object.keys(fileErrors).length > 0) {
                 renderFiles(fileErrors);
