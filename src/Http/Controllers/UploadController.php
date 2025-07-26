@@ -313,6 +313,10 @@ class UploadController extends Controller
                     'view_permission' => $viewPermission,
                     'delete_permission' => $deletePermission,
                     'user_authenticated' => $user ? true : false,
+                    'upload_guest_token_type' => gettype($upload->guest_token),
+                    'request_guest_token_type' => gettype($guestToken),
+                    'tokens_identical' => $upload->guest_token === $guestToken,
+                    'tokens_equal' => $upload->guest_token == $guestToken,
                 ];
 
                 return $uploadArray;
@@ -349,8 +353,19 @@ class UploadController extends Controller
 
         // Check permissions
         $guestToken = $request->input('guest_token');
+        $user = Auth::user();
 
-        if (!Gate::allows('delete', [$upload, $guestToken])) {
+        $canDelete = false;
+
+        if ($user) {
+            // Authenticated user - use policy
+            $canDelete = Gate::allows('delete', [$upload, $guestToken]);
+        } else {
+            // Guest user - check guest token match
+            $canDelete = $guestToken && $upload->guest_token === $guestToken;
+        }
+
+        if (!$canDelete) {
             return Response::json(['error' => 'Unauthorized'], 403);
         }
 

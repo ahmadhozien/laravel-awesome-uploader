@@ -86,6 +86,58 @@ document.addEventListener("DOMContentLoaded", function () {
       errorDismiss.addEventListener("click", clearError);
     }
 
+    // Clipboard helper functions
+    function copyToClipboard(text) {
+      return new Promise((resolve, reject) => {
+        // Modern clipboard API (requires HTTPS or localhost)
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text).then(resolve).catch(reject);
+        } else {
+          // Fallback for non-secure contexts
+          try {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            const success = document.execCommand("copy");
+            document.body.removeChild(textArea);
+
+            if (success) {
+              resolve();
+            } else {
+              reject(new Error("execCommand failed"));
+            }
+          } catch (err) {
+            reject(err);
+          }
+        }
+      });
+    }
+
+    function showCopySuccess() {
+      // Create a temporary success message
+      const message = document.createElement("div");
+      message.textContent = "URL copied to clipboard!";
+      message.className =
+        "fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-opacity duration-300";
+      document.body.appendChild(message);
+
+      // Remove the message after 2 seconds
+      setTimeout(() => {
+        message.style.opacity = "0";
+        setTimeout(() => {
+          if (message.parentNode) {
+            message.parentNode.removeChild(message);
+          }
+        }, 300);
+      }, 2000);
+    }
+
     function addFiles(newFiles) {
       clearError();
       if (!allowMultiple) {
@@ -347,9 +399,17 @@ document.addEventListener("DOMContentLoaded", function () {
               .addEventListener("click", function (e) {
                 e.stopPropagation();
                 menu.classList.add("hidden");
-                navigator.clipboard.writeText(file.url).then(() => {
-                  ellipsisBtn.blur();
-                });
+                copyToClipboard(file.url)
+                  .then(() => {
+                    ellipsisBtn.blur();
+                    // Show a brief success message
+                    showCopySuccess();
+                  })
+                  .catch((err) => {
+                    console.error("Failed to copy URL:", err);
+                    // Fallback: show the URL in an alert
+                    alert("URL copied to clipboard:\n" + file.url);
+                  });
               });
           }
         }

@@ -149,7 +149,7 @@ return [
     | Settings for database integration and querying.
     |
     */
-    'save_to_db' => env('UPLOADER_SAVE_TO_DB', false),
+    'save_to_db' => env('UPLOADER_SAVE_TO_DB', true),
     'pagination_limit' => env('UPLOADER_PAGINATION_LIMIT', 20),
 
     /*
