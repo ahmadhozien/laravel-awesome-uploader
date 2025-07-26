@@ -55,7 +55,7 @@ class UploadController extends Controller
             // Get upload options
             $multiple = $request->boolean('multiple', false) || $request->hasFile('files');
             $saveToDb = $request->boolean('saveToDb', Config::get('uploader.save_to_db', false));
-            $guestToken = $request->input('guest_token') ?: (Config::get('uploader.guest_token_resolver'))();
+            $guestToken = $request->input('guest_token');
 
             // Check guest upload limits
             if (!Auth::check() && $allowGuests) {
@@ -232,77 +232,104 @@ class UploadController extends Controller
      */
     public function index(Request $request)
     {
-        $userResolver = Config::get('uploader.user_resolver');
-        $adminResolver = Config::get('uploader.admin_resolver');
-        $uploadsQuery = Config::get('uploader.uploads_query');
-        $allowGuests = Config::get('uploader.allow_guests', false);
+        try {
+            $userResolver = Config::get('uploader.user_resolver');
+            $adminResolver = Config::get('uploader.admin_resolver');
+            $uploadsQuery = Config::get('uploader.uploads_query');
+            $allowGuests = Config::get('uploader.allow_guests', false);
 
-        $user = $userResolver();
-        $isAdmin = $adminResolver($user);
-        $guestToken = $request->input('guest_token') ?: (Config::get('uploader.guest_token_resolver'))();
+            $user = $userResolver();
+            $isAdmin = $adminResolver($user);
+            $guestToken = $request->input('guest_token');
 
-        $query = Upload::query()->with(['user' => function ($query) {
-            $query->select('id', 'name', 'email'); // Only select needed fields
-        }]);
+            $query = Upload::query()->with(['user' => function ($query) {
+                $query->select('id', 'name', 'email'); // Only select needed fields
+            }]);
 
-        // Apply user/admin filtering
-        if (!$user && $allowGuests) {
-            $query->where('guest_token', $guestToken);
-        } else {
-            $query = $uploadsQuery($query, $user, $isAdmin);
-        }
-
-        // Apply filters
-        if ($request->has('type')) {
-            $type = $request->input('type');
-            if ($type === 'images') {
-                $query->where('type', 'like', 'image%');
-            } elseif ($type === 'documents') {
-                $query->where('type', 'not like', 'image%');
+            // Apply user/admin filtering
+            if (!$user && $allowGuests) {
+                $query->where('guest_token', $guestToken);
+            } else {
+                $query = $uploadsQuery($query, $user, $isAdmin);
             }
+
+            // Apply filters
+            if ($request->has('type')) {
+                $type = $request->input('type');
+                if ($type === 'images') {
+                    $query->where('type', 'like', 'image%');
+                } elseif ($type === 'documents') {
+                    $query->where('type', 'not like', 'image%');
+                }
+            }
+
+            if ($request->has('search')) {
+                $search = $request->input('search');
+                $query->where('name', 'like', "%{$search}%");
+            }
+
+            // Apply sorting
+            $sortBy = $request->input('sort_by', 'created_at');
+            $sortOrder = $request->input('sort_order', 'desc');
+            $query->orderBy($sortBy, $sortOrder);
+
+            // Paginate results
+            $perPage = min($request->input('per_page', Config::get('uploader.pagination_limit', 20)), 100);
+            $uploads = $query->paginate($perPage);
+
+            // Add permissions to each upload
+            $uploads->getCollection()->transform(function ($upload) use ($guestToken, $user) {
+                $uploadArray = $upload->toArray();
+
+                // Simple permission logic for guest users
+                $viewPermission = false;
+                $deletePermission = false;
+
+                if ($user) {
+                    // Authenticated user - use policy
+                    $viewPermission = Gate::allows('view', [$upload, $guestToken]);
+                    $deletePermission = Gate::allows('delete', [$upload, $guestToken]);
+                } else {
+                    // Guest user - check guest token match
+                    if ($guestToken && $upload->guest_token === $guestToken) {
+                        $viewPermission = true;
+                        $deletePermission = true;
+                    }
+                }
+
+                $uploadArray['permissions'] = [
+                    'view' => $viewPermission,
+                    'delete' => $deletePermission,
+                    'download' => $viewPermission,
+                ];
+                $uploadArray['formatted_size'] = $upload->formatted_size;
+                $uploadArray['is_image'] = $upload->is_image;
+
+                // Add debug info
+                $uploadArray['debug'] = [
+                    'guest_token_match' => $upload->guest_token === $guestToken,
+                    'upload_guest_token' => $upload->guest_token,
+                    'request_guest_token' => $guestToken,
+                    'view_permission' => $viewPermission,
+                    'delete_permission' => $deletePermission,
+                    'user_authenticated' => $user ? true : false,
+                ];
+
+                return $uploadArray;
+            });
+
+            return Response::json($uploads);
+        } catch (\Exception $e) {
+            Log::error('Error in uploads index: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+
+            return Response::json([
+                'error' => 'An error occurred while fetching uploads',
+                'debug' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
-
-        if ($request->has('search')) {
-            $search = $request->input('search');
-            $query->where('name', 'like', "%{$search}%");
-        }
-
-        // Apply sorting
-        $sortBy = $request->input('sort_by', 'created_at');
-        $sortOrder = $request->input('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
-
-        // Paginate results
-        $perPage = min($request->input('per_page', Config::get('uploader.pagination_limit', 20)), 100);
-        $uploads = $query->paginate($perPage);
-
-        // Add permissions to each upload
-        $uploads->getCollection()->transform(function ($upload) use ($guestToken) {
-            $uploadArray = $upload->toArray();
-
-            // Debug permissions
-            $viewPermission = Gate::allows('view', [$upload, $guestToken]);
-            $deletePermission = Gate::allows('delete', [$upload, $guestToken]);
-
-            $uploadArray['permissions'] = [
-                'view' => $viewPermission,
-                'delete' => $deletePermission,
-                'download' => $viewPermission,
-            ];
-            $uploadArray['formatted_size'] = $upload->formatted_size;
-            $uploadArray['is_image'] = $upload->is_image;
-
-            // Add debug info
-            $uploadArray['debug'] = [
-                'guest_token_match' => $upload->guest_token === $guestToken,
-                'upload_guest_token' => $upload->guest_token,
-                'request_guest_token' => $guestToken,
-            ];
-
-            return $uploadArray;
-        });
-
-        return Response::json($uploads);
     }
 
     /**
@@ -321,7 +348,7 @@ class UploadController extends Controller
         }
 
         // Check permissions
-        $guestToken = $request->input('guest_token') ?: (Config::get('uploader.guest_token_resolver'))();
+        $guestToken = $request->input('guest_token');
 
         if (!Gate::allows('delete', [$upload, $guestToken])) {
             return Response::json(['error' => 'Unauthorized'], 403);
