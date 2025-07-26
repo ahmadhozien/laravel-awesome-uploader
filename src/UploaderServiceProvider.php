@@ -13,6 +13,11 @@ use function app;
 class UploaderServiceProvider extends ServiceProvider
 {
     /**
+     * Package version.
+     */
+    public const VERSION = '1.0.0';
+
+    /**
      * Bootstrap any application services.
      *
      * @return void
@@ -22,18 +27,9 @@ class UploaderServiceProvider extends ServiceProvider
         $this->registerRoutes();
         $this->registerViews();
         $this->registerPublishing();
-        // Register anonymous components in the 'uploader' namespace for both package and published paths
-        Blade::anonymousComponentNamespace(__DIR__ . '/resources/views/components', 'uploader');
-
-        // Optionally, if users publish the views:
-        Blade::anonymousComponentNamespace(
-            resource_path('views/vendor/uploader/components'),
-            'uploader'
-        );
-        // Register a Blade component alias for dot syntax usage
-        Blade::component('uploader::popup', 'uploader.popup');
-        // Register policy for Upload model
-        Gate::policy(Upload::class, UploadPolicy::class);
+        $this->registerBladeComponents();
+        $this->registerPolicies();
+        $this->registerCommands();
     }
 
     /**
@@ -47,6 +43,11 @@ class UploaderServiceProvider extends ServiceProvider
 
         $this->app->singleton('uploader', function ($app) {
             return new \Hozien\Uploader\Uploader();
+        });
+
+        // Register version information
+        $this->app->singleton('uploader.version', function () {
+            return self::VERSION;
         });
     }
 
@@ -71,6 +72,52 @@ class UploaderServiceProvider extends ServiceProvider
     }
 
     /**
+     * Register Blade components.
+     *
+     * @return void
+     */
+    protected function registerBladeComponents()
+    {
+        // Register anonymous components in the 'uploader' namespace for both package and published paths
+        Blade::anonymousComponentNamespace(__DIR__ . '/resources/views/components', 'uploader');
+
+        // Optionally, if users publish the views:
+        Blade::anonymousComponentNamespace(
+            resource_path('views/vendor/uploader/components'),
+            'uploader'
+        );
+
+        // Register a Blade component alias for dot syntax usage
+        Blade::component('uploader::popup', 'uploader.popup');
+    }
+
+    /**
+     * Register policies.
+     *
+     * @return void
+     */
+    protected function registerPolicies()
+    {
+        Gate::policy(Upload::class, UploadPolicy::class);
+    }
+
+    /**
+     * Register package commands.
+     *
+     * @return void
+     */
+    protected function registerCommands()
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \Hozien\Uploader\Console\Commands\CleanupOrphanedFilesCommand::class,
+                \Hozien\Uploader\Console\Commands\GenerateThumbnailsCommand::class,
+                \Hozien\Uploader\Console\Commands\UploaderStatusCommand::class,
+            ]);
+        }
+    }
+
+    /**
      * Register the package's publishable resources.
      *
      * @return void
@@ -78,29 +125,59 @@ class UploaderServiceProvider extends ServiceProvider
     protected function registerPublishing()
     {
         if ($this->app->runningInConsole()) {
+            // Configuration
             $this->publishes([
                 __DIR__ . '/config/uploader.php' => $this->app->configPath('uploader.php'),
-            ], 'uploader-config');
+            ], ['uploader-config', 'uploader']);
 
+            // Views
             $this->publishes([
                 __DIR__ . '/resources/views' => $this->app->resourcePath('views/vendor/uploader'),
-            ], 'uploader-views');
+            ], ['uploader-views', 'uploader']);
 
+            // Frontend Assets
             $this->publishes([
                 __DIR__ . '/resources/js' => $this->app->publicPath('vendor/uploader'),
-            ], 'uploader-assets');
+            ], ['uploader-assets', 'uploader']);
 
+            // Language Files
             $this->publishes([
                 __DIR__ . '/resources/lang' => $this->app->langPath('vendor/uploader'),
-            ], 'uploader-lang');
+            ], ['uploader-lang', 'uploader']);
 
+            // Migrations
             $this->publishes([
                 __DIR__ . '/../database/migrations' => $this->app->databasePath('migrations'),
-            ], 'uploader-migrations');
+            ], ['uploader-migrations', 'uploader']);
 
+            // Policies
             $this->publishes([
                 __DIR__ . '/Policies/UploadPolicy.php' => $this->app->basePath('app/Policies/UploadPolicy.php'),
-            ], 'uploader-policy');
+            ], ['uploader-policy', 'uploader']);
+
+            // Tests (for development)
+            $this->publishes([
+                __DIR__ . '/../tests' => base_path('tests/vendor/uploader'),
+            ], ['uploader-tests']);
+
+            // Publish everything at once
+            $this->publishes([
+                __DIR__ . '/config/uploader.php' => $this->app->configPath('uploader.php'),
+                __DIR__ . '/resources/views' => $this->app->resourcePath('views/vendor/uploader'),
+                __DIR__ . '/resources/js' => $this->app->publicPath('vendor/uploader'),
+                __DIR__ . '/resources/lang' => $this->app->langPath('vendor/uploader'),
+                __DIR__ . '/../database/migrations' => $this->app->databasePath('migrations'),
+            ], 'uploader');
         }
+    }
+
+    /**
+     * Get the package version.
+     *
+     * @return string
+     */
+    public static function version(): string
+    {
+        return self::VERSION;
     }
 }

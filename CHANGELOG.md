@@ -1,0 +1,210 @@
+# Changelog
+
+All notable changes to `laravel-awesome-uploader` will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Planned Features
+
+- Virus scanning integration
+- Background job processing for large files
+- Cloud storage optimization features
+- Advanced analytics and reporting
+- WebP image format support
+- Bulk operations API
+- Advanced permission systems
+
+## [1.0.0] - 2025-07-01
+
+### 🚀 Production-Ready Enterprise Features
+
+A comprehensive file uploader for Laravel with enterprise-level features including deduplication, thumbnails, advanced security, and performance optimizations.
+
+### Added
+
+- **File Deduplication**: Intelligent duplicate detection using MD5 hashing
+- **Automatic Thumbnails**: Multiple thumbnail sizes generated automatically for images
+- **Enhanced Image Processing**: Improved image optimization with graceful degradation when intervention/image is not installed
+- **Advanced Security**: Multi-layer file validation and MIME type checking
+- **Guest Upload Support**: Allow non-authenticated users with rate limiting
+- **Upload Statistics**: Built-in analytics for file uploads and storage usage
+- **File Cleanup**: Automatic detection and cleanup of orphaned files
+- **Comprehensive Error Handling**: Robust error handling with detailed logging
+- **Performance Optimizations**: Database indexing and efficient file operations
+- **Enhanced Configuration**: Environment variable support for all major settings
+- **Complete Test Suite**: Feature and unit tests for all functionality
+- **Pagination Support**: Efficient pagination for large file lists
+- **Advanced Filtering**: Search and filter uploads by type, name, date
+- **File Hash Tracking**: MD5 hash storage for duplicate detection
+- **Thumbnail Management**: Automatic thumbnail generation and cleanup
+- **Enhanced Validation**: Content-based validation beyond MIME types
+- **Comprehensive API**: RESTful API with full CRUD operations
+- **Console Commands**: Package management and maintenance commands
+- **CI/CD Integration**: GitHub Actions for automated testing and releases
+
+### Core Features
+
+- **Multiple Frontend Support**: Blade, React, and Vue components out of the box
+- **Configurable Storage**: Use any of Laravel's filesystem disks (local, S3, etc.)
+- **Database Integration**: Optional database storage with soft deletes
+- **Policy-Driven Permissions**: Secure, customizable access control
+- **Drag & Drop UI**: Modern drag-and-drop interface for all frontend components
+- **Multi-File Uploads**: Support for single and multiple file uploads
+- **File Type Validation**: Comprehensive file type and size validation
+- **Smart User/Admin Management**: Advanced user/admin filtering with customizable access control
+
+### Enhanced Components
+
+- **Core Uploader Class**: Feature-rich utility class with comprehensive methods
+- **Storage Trait**: Robust storage handling with error management and deduplication
+- **Image Processor**: Graceful handling of image processing with or without intervention/image
+- **Upload Controller**: Separated logic for single/multiple uploads with enhanced error handling
+- **Database Model**: Complete model with relationships, scopes, and computed attributes
+- **Configuration System**: Highly configurable with environment variables
+- **Frontend Components**: Enhanced error handling and comprehensive event system
+
+### Environment Variables
+
+- `UPLOADER_DISK` - Storage disk configuration
+- `UPLOADER_SAVE_TO_DB` - Enable/disable database storage
+- `UPLOADER_CHECK_DUPLICATES` - Enable/disable duplicate detection
+- `UPLOADER_IMAGE_OPTIMIZATION` - Enable/disable image optimization
+- `UPLOADER_GENERATE_THUMBNAILS` - Enable/disable thumbnail generation
+- `UPLOADER_STRICT_MIME` - Enable strict MIME validation
+- `UPLOADER_GUEST_LIMIT` - Set guest upload limits
+- `UPLOADER_PAGINATION_LIMIT` - Set pagination limits
+- `UPLOADER_ENABLE_LOGGING` - Enable detailed logging
+- And many more for complete customization
+
+### API Endpoints
+
+- `POST /api/uploader/upload` - Upload single or multiple files
+- `GET /api/uploader/uploads` - List uploads with pagination and filtering
+- `DELETE /api/uploader/uploads/{id}` - Delete specific upload
+- `GET /api/uploader/stats` - Upload statistics (authenticated users)
+- `POST /api/uploader/cleanup` - Clean orphaned files (admin only)
+
+### Console Commands
+
+- `php artisan uploader:status` - Show package status and configuration
+- `php artisan uploader:cleanup` - Clean up orphaned files
+- `php artisan uploader:thumbnails` - Generate missing thumbnails
+
+### Security Features
+
+- Multi-layer file validation (extension, MIME type, content)
+- Filename sanitization and length limits
+- Guest upload rate limiting
+- Enhanced permission system with policies
+- Comprehensive security logging
+- Content-based MIME type validation
+
+### Performance Features
+
+- Database indexing for faster queries
+- Efficient pagination for large datasets
+- Optimized duplicate detection algorithms
+- Thumbnail generation optimization
+- Query optimization with eager loading
+- Unique filename generation to prevent conflicts
+
+### Developer Experience
+
+- Comprehensive test suite (Feature + Unit tests)
+- Rich utility methods in core classes
+- Detailed error messages and logging
+- Complete inline documentation
+- Factory classes for testing
+- Migration helpers
+- CI/CD automation with GitHub Actions
+- Professional package structure
+
+### JavaScript Events
+
+Enhanced event system for frontend integration:
+
+- `files-selected` - Files selected for upload
+- `upload-start` - Upload process begins
+- `upload-success` - Upload completed successfully
+- `upload-error` - Upload failed
+- `upload-progress` - Upload progress update
+- `duplicate-detected` - Duplicate file detected
+- `thumbnail-generated` - Thumbnail generation complete
+
+---
+
+## Installation & Usage
+
+### Quick Start
+
+```bash
+# Install the package
+composer require hozien/laravel-awesome-uploader
+
+# Publish assets
+php artisan vendor:publish --provider="Hozien\Uploader\UploaderServiceProvider"
+
+# Run migrations
+php artisan migrate
+
+# Check status
+php artisan uploader:status
+```
+
+### Basic Blade Usage
+
+```blade
+<!-- Add upload button -->
+<button onclick="window.dispatchEvent(new Event('open-uploader'))">
+    Upload Files
+</button>
+
+<!-- Include uploader component -->
+<x-uploader::popup :saveToDb="true" :multiple="true" />
+
+<!-- Include required JS -->
+<script src="{{ asset('vendor/uploader/popup.js') }}"></script>
+
+<!-- Handle upload events -->
+<script>
+    window.addEventListener("upload-success", (event) => {
+        const response = event.detail.response;
+        console.log("Upload successful:", response);
+
+        if (response.is_duplicate) {
+            console.log("File was a duplicate");
+        }
+
+        if (response.thumbnails) {
+            console.log("Thumbnails generated:", response.thumbnails);
+        }
+    });
+</script>
+```
+
+## Requirements
+
+- PHP 8.1+
+- Laravel 9.0+
+- Optional: `intervention/image` for full image processing features
+
+## Support
+
+- **Documentation**: Complete README with examples
+- **Issues**: [GitHub Issues](https://github.com/hozien/laravel-awesome-uploader/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/hozien/laravel-awesome-uploader/discussions)
+
+## Contributing
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this project.
+
+## Security
+
+If you discover any security-related issues, please email security@example.com instead of using the issue tracker.
+
+## License
+
+The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
