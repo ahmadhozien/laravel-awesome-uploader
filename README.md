@@ -45,6 +45,37 @@ This publishes:
 - Migrations to `database/migrations`
 - Translation files to `resources/lang/vendor/uploader`
 
+## Prerequisites
+
+### Required Dependencies
+
+**For Image Processing Features:**
+
+```bash
+composer require intervention/image
+```
+
+**Why this is needed:**
+
+- Image optimization and compression
+- Automatic thumbnail generation
+- Image orientation correction (EXIF data)
+- Image format conversion and manipulation
+
+**What happens without it:**
+
+- Uploader works normally for all file types
+- Image processing features are gracefully disabled
+- Warning logged: "Intervention Image package not installed - image processing disabled"
+- No errors or broken functionality
+
+### System Requirements
+
+- **PHP**: 8.1 or higher
+- **Laravel**: 9.0, 10.0, 11.0, or 12.0
+- **Storage**: Any Laravel filesystem disk (local, S3, etc.)
+- **Database**: MySQL, PostgreSQL, SQLite, or SQL Server (for database integration)
+
 ## Database Setup
 
 **Required for database integration:**
@@ -158,6 +189,117 @@ return [
         return $query->where('user_id', $user ? $user->id : null);
     },
 ];
+```
+
+### Image Processing Configuration
+
+**⚠️ Important:** Image processing features require the `intervention/image` package. Install it first:
+
+```bash
+composer require intervention/image
+```
+
+#### Image Optimization Settings
+
+```env
+# Enable/disable image optimization (default: true)
+UPLOADER_IMAGE_OPTIMIZATION=true
+
+# Image quality for optimization (1-100, default: 85)
+UPLOADER_IMAGE_QUALITY=85
+
+# Auto-correct image orientation from EXIF data (default: true)
+UPLOADER_AUTO_ORIENT=true
+```
+
+**What these do:**
+- **`UPLOADER_IMAGE_OPTIMIZATION`**: Enables compression and optimization of uploaded images
+- **`UPLOADER_IMAGE_QUALITY`**: Controls compression level (higher = better quality, larger file)
+- **`UPLOADER_AUTO_ORIENT`**: Fixes images that appear rotated due to EXIF orientation data
+
+#### Thumbnail Generation Settings
+
+```env
+# Enable/disable automatic thumbnail generation (default: true)
+UPLOADER_GENERATE_THUMBNAILS=true
+
+# Quality for thumbnail images (1-100, default: 80)
+UPLOADER_THUMBNAIL_QUALITY=80
+```
+
+**Thumbnail Sizes** (configured in `config/uploader.php`):
+```php
+'thumbnail_sizes' => [150, 300, 600], // Width in pixels
+```
+
+**Generated Files:**
+- Original: `uploads/image.jpg`
+- Thumbnails: 
+  - `uploads/image_thumb_150.jpg` (150px wide)
+  - `uploads/image_thumb_300.jpg` (300px wide)
+  - `uploads/image_thumb_600.jpg` (600px wide)
+
+#### Testing Image Processing
+
+**1. Verify Installation:**
+```bash
+# Check if intervention/image is installed
+composer show intervention/image
+```
+
+**2. Test Upload Response:**
+Upload an image and check the response for:
+```json
+{
+  "success": true,
+  "path": "uploads/image.jpg",
+  "thumbnails": {
+    "150": {
+      "path": "uploads/image_thumb_150.jpg",
+      "url": "http://your-app.com/storage/uploads/image_thumb_150.jpg",
+      "size": 12345
+    },
+    "300": { ... },
+    "600": { ... }
+  }
+}
+```
+
+**3. Check File Sizes:**
+- Original image should be compressed (smaller file size)
+- Thumbnails should be significantly smaller
+- All images should have correct orientation
+
+#### Troubleshooting Image Processing
+
+**Problem: No thumbnails generated**
+- **Solution**: Install `intervention/image` package
+- **Check**: Look for warning in Laravel logs: "Intervention Image package not installed"
+
+**Problem: Images still large after optimization**
+- **Solution**: Lower `UPLOADER_IMAGE_QUALITY` value (try 70-80)
+- **Check**: Original image format (PNG files compress less than JPEG)
+
+**Problem: Thumbnails not appearing**
+- **Solution**: Check storage disk configuration and file permissions
+- **Check**: Verify thumbnail paths in response
+
+**Problem: Images appear rotated**
+- **Solution**: Ensure `UPLOADER_AUTO_ORIENT=true`
+- **Check**: Image has EXIF orientation data
+
+#### Performance Considerations
+
+- **Quality vs Size**: Lower quality = smaller files = faster uploads
+- **Thumbnail Count**: More sizes = more processing time
+- **Storage Space**: Each thumbnail uses additional storage
+- **Processing Time**: Large images take longer to process
+
+**Recommended Settings for Production:**
+```env
+UPLOADER_IMAGE_QUALITY=80          # Good balance of quality/size
+UPLOADER_THUMBNAIL_QUALITY=75      # Thumbnails can be lower quality
+UPLOADER_GENERATE_THUMBNAILS=true  # Enable for responsive design
 ```
 
 ### Logging Configuration
