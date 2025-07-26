@@ -55,6 +55,12 @@ This publishes:
 composer require intervention/image
 ```
 
+**Version Compatibility:**
+
+- **Intervention Image v2.x** (^2.5) - Fully supported
+- **Intervention Image v3.x** (^3.0) - Fully supported
+- The package automatically detects and adapts to the installed version
+
 **Why this is needed:**
 
 - Image optimization and compression
@@ -213,6 +219,7 @@ UPLOADER_AUTO_ORIENT=true
 ```
 
 **What these do:**
+
 - **`UPLOADER_IMAGE_OPTIMIZATION`**: Enables compression and optimization of uploaded images
 - **`UPLOADER_IMAGE_QUALITY`**: Controls compression level (higher = better quality, larger file)
 - **`UPLOADER_AUTO_ORIENT`**: Fixes images that appear rotated due to EXIF orientation data
@@ -228,13 +235,15 @@ UPLOADER_THUMBNAIL_QUALITY=80
 ```
 
 **Thumbnail Sizes** (configured in `config/uploader.php`):
+
 ```php
 'thumbnail_sizes' => [150, 300, 600], // Width in pixels
 ```
 
 **Generated Files:**
+
 - Original: `uploads/image.jpg`
-- Thumbnails: 
+- Thumbnails:
   - `uploads/image_thumb_150.jpg` (150px wide)
   - `uploads/image_thumb_300.jpg` (300px wide)
   - `uploads/image_thumb_600.jpg` (600px wide)
@@ -242,6 +251,7 @@ UPLOADER_THUMBNAIL_QUALITY=80
 #### Testing Image Processing
 
 **1. Verify Installation:**
+
 ```bash
 # Check if intervention/image is installed
 composer show intervention/image
@@ -249,6 +259,7 @@ composer show intervention/image
 
 **2. Test Upload Response:**
 Upload an image and check the response for:
+
 ```json
 {
   "success": true,
@@ -266,6 +277,7 @@ Upload an image and check the response for:
 ```
 
 **3. Check File Sizes:**
+
 - Original image should be compressed (smaller file size)
 - Thumbnails should be significantly smaller
 - All images should have correct orientation
@@ -273,18 +285,22 @@ Upload an image and check the response for:
 #### Troubleshooting Image Processing
 
 **Problem: No thumbnails generated**
+
 - **Solution**: Install `intervention/image` package
 - **Check**: Look for warning in Laravel logs: "Intervention Image package not installed"
 
 **Problem: Images still large after optimization**
+
 - **Solution**: Lower `UPLOADER_IMAGE_QUALITY` value (try 70-80)
 - **Check**: Original image format (PNG files compress less than JPEG)
 
 **Problem: Thumbnails not appearing**
+
 - **Solution**: Check storage disk configuration and file permissions
 - **Check**: Verify thumbnail paths in response
 
 **Problem: Images appear rotated**
+
 - **Solution**: Ensure `UPLOADER_AUTO_ORIENT=true`
 - **Check**: Image has EXIF orientation data
 
@@ -296,6 +312,7 @@ Upload an image and check the response for:
 - **Processing Time**: Large images take longer to process
 
 **Recommended Settings for Production:**
+
 ```env
 UPLOADER_IMAGE_QUALITY=80          # Good balance of quality/size
 UPLOADER_THUMBNAIL_QUALITY=75      # Thumbnails can be lower quality

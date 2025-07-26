@@ -25,7 +25,14 @@ class ImageProcessor
     {
         if (class_exists('\Intervention\Image\ImageManager')) {
             try {
-                $this->manager = new \Intervention\Image\ImageManager(['driver' => 'gd']);
+                // Check if we're using Intervention Image v3+
+                if (class_exists('\Intervention\Image\Drivers\Gd\Driver')) {
+                    // v3+ API
+                    $this->manager = new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
+                } else {
+                    // v2 API
+                    $this->manager = new \Intervention\Image\ImageManager(['driver' => 'gd']);
+                }
                 $this->available = true;
             } catch (\Exception $e) {
                 Log::warning('Intervention Image available but failed to initialize: ' . $e->getMessage());
@@ -144,10 +151,20 @@ class ImageProcessor
                 $thumbnailPath = $this->getThumbnailPath($imagePath, $size);
 
                 $thumbnail = clone $image;
-                $thumbnail->resize($size, $size, function ($constraint) {
-                    $constraint->aspectRatio();
-                    $constraint->upsize();
-                });
+                
+                // Handle different resize syntax for v2 vs v3
+                if (method_exists($thumbnail, 'resize')) {
+                    // Try v2 syntax first
+                    try {
+                        $thumbnail->resize($size, $size, function ($constraint) {
+                            $constraint->aspectRatio();
+                            $constraint->upsize();
+                        });
+                    } catch (\Exception $e) {
+                        // Fallback to v3 syntax
+                        $thumbnail->resize($size, $size);
+                    }
+                }
 
                 $encoded = $thumbnail->encode(null, $quality);
                 $disk->put($thumbnailPath, $encoded);
