@@ -30,23 +30,13 @@ A **production-ready**, customizable and pluggable file uploader for Laravel tha
 
 ![Landing Page](docs/screenshots/landing-page.png)
 
-### 📚 Documentation Page
-
 ![Documentation](docs/screenshots/documentation.png)
-
-### 📁 File Manager (Empty State)
 
 ![File Manager Empty](docs/screenshots/file-manager-empty.png)
 
-### 📤 Upload Interface
-
 ![Upload Interface](docs/screenshots/upload-interface.png)
 
-### 📋 File Manager with Files
-
 ![File Manager with Files](docs/screenshots/file-manager-with-files.png)
-
-### ⚙️ File Options Menu
 
 ![File Options Menu](docs/screenshots/file-options-menu.png)
 
