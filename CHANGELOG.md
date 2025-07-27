@@ -55,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Improved Token Debugging**: Added comprehensive debug information for guest token matching and comparison
 - **Fixed Console Logging**: Made frontend console logging configurable via `UPLOADER_ENABLE_LOGGING` environment variable (defaults to `false`)
 - **Fixed Intervention Image Compatibility**: Added comprehensive support for both Intervention Image v2.x and v3.x with robust API method compatibility using method existence checks, proper type casting, graceful fallbacks, and correct usage of v3 encoding interfaces and methods
+- **Added Thumbnail Links Feature**: Added ability to copy thumbnail URLs for images with multiple size options (150px, 300px, 600px) through the file options menu
 
 ## [1.0.0] - 2025-07-01
 

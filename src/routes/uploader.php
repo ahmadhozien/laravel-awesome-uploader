@@ -15,6 +15,7 @@ Route::group(['middleware' => ['api', 'json'], 'prefix' => 'api/uploader'], func
     Route::get('/uploads', [UploadController::class, 'index'])->name('uploader.index');
     Route::delete('/uploads/{id}', [UploadController::class, 'destroy'])->name('uploader.destroy');
     Route::put('/uploads/{id}/rename', [UploadController::class, 'rename'])->name('uploader.rename');
+    Route::get('/uploads/{id}/thumbnails', [UploadController::class, 'getThumbnails'])->name('uploader.thumbnails');
 
     // Statistics and management endpoints
     Route::get('/stats', [UploadController::class, 'stats'])->name('uploader.stats');

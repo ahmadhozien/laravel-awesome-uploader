@@ -320,8 +320,10 @@ document.addEventListener("DOMContentLoaded", function () {
         log("Rendering file:", file);
         const card = document.createElement("div");
         card.className =
-          "relative rounded-xl border bg-white shadow hover:shadow-lg transition cursor-pointer flex flex-col items-center p-2 group" +
-          (selectedManagerFiles.has(file.id) ? " ring-2 ring-blue-500" : "");
+          "relative rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col items-center p-3 group transform hover:scale-105" +
+          (selectedManagerFiles.has(file.id)
+            ? " ring-2 ring-blue-500 shadow-lg"
+            : "");
         card.tabIndex = 0;
         card.setAttribute("role", "button");
         card.setAttribute(
@@ -330,28 +332,28 @@ document.addEventListener("DOMContentLoaded", function () {
         );
         card.setAttribute("data-id", file.id);
         card.innerHTML = `
-                <div class="w-28 h-20 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden mb-2">
+                <div class="w-28 h-20 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden mb-3 shadow-sm">
                     <img src="${file.url}" alt="${
           file.name
-        }" class="object-contain max-h-full max-w-full" />
+        }" class="object-contain max-h-full max-w-full rounded-lg" />
                 </div>
-                <div class="w-full text-center text-xs text-gray-700 truncate">${
+                <div class="w-full text-center text-xs font-medium text-gray-800 truncate mb-1">${
                   file.name
                 }</div>
-                <div class="w-full text-center text-[11px] text-gray-400">${formatFileSize(
+                <div class="w-full text-center text-[11px] text-gray-500 font-medium">${formatFileSize(
                   file.size || 0
                 )}</div>
                 <div class="absolute top-2 left-2">
-                    <span class="inline-block w-4 h-4 rounded-full border border-gray-300 bg-white ${
+                    <span class="inline-block w-5 h-5 rounded-full border-2 border-gray-300 bg-white shadow-sm transition-all duration-200 ${
                       selectedManagerFiles.has(file.id)
-                        ? "bg-blue-500 border-blue-500"
-                        : ""
+                        ? "bg-blue-500 border-blue-500 scale-110"
+                        : "group-hover:border-gray-400"
                     }"></span>
                 </div>
-                <button class="absolute top-2 right-2 z-10 uploader-ellipsis-btn p-1 rounded-full hover:bg-gray-100 focus:outline-none" aria-label="Options">
-                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2" fill="#888"/><circle cx="12" cy="12" r="2" fill="#888"/><circle cx="19" cy="12" r="2" fill="#888"/></svg>
+                <button class="absolute top-2 right-2 z-10 uploader-ellipsis-btn p-1.5 rounded-full hover:bg-gray-100 focus:outline-none transition-all duration-200 opacity-0 group-hover:opacity-100" aria-label="Options">
+                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" class="text-gray-600"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg>
                 </button>
-                <div class="uploader-options-menu hidden absolute top-8 right-2 min-w-[160px] bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-20 text-sm rtl:right-auto rtl:left-2">
+                <div class="uploader-options-menu hidden absolute top-8 right-2 min-w-[180px] bg-white border border-gray-200 rounded-xl shadow-xl py-2 z-20 text-sm rtl:right-auto rtl:left-2 backdrop-blur-sm">
                   ${
                     file.permissions && file.permissions.view
                       ? '<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 uploader-info-btn flex items-center gap-2">' +
@@ -368,6 +370,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     file.permissions && file.permissions.download
                       ? '<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 uploader-copy-btn flex items-center gap-2">' +
                         '<svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="13" height="13" x="9" y="9" rx="2"/><path d="M5 15V5a2 2 0 012-2h10a2 2 0 012 2v10"/></svg>Copy Link</button>'
+                      : ""
+                  }
+                  ${
+                    file.is_image &&
+                    file.thumbnails &&
+                    Object.keys(file.thumbnails).length > 0
+                      ? '<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 uploader-thumbnails-btn flex items-center gap-2">' +
+                        '<svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>Thumbnail Links</button>'
                       : ""
                   }
                   ${
@@ -487,6 +497,173 @@ document.addEventListener("DOMContentLoaded", function () {
             });
           }
         }
+
+        // Add thumbnail links functionality
+        if (file.is_image) {
+          const thumbnailsBtn = menu.querySelector(".uploader-thumbnails-btn");
+          if (thumbnailsBtn) {
+            thumbnailsBtn.addEventListener("click", async function (e) {
+              e.stopPropagation();
+              menu.classList.add("hidden");
+
+              // Create thumbnail links modal
+              const thumbnailsModal = document.createElement("div");
+              thumbnailsModal.className =
+                "fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50";
+
+              // Show loading state
+              thumbnailsModal.innerHTML = `
+                <div class="bg-white rounded-lg p-6 w-96 max-w-full mx-4 shadow-2xl" onclick="event.stopPropagation()">
+                  <h3 class="text-lg font-medium mb-4">Thumbnail Links</h3>
+                  <div class="flex items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span class="ml-3 text-gray-600">Loading thumbnails...</span>
+                  </div>
+                </div>
+              `;
+
+              document.body.appendChild(thumbnailsModal);
+
+              try {
+                // Fetch thumbnails from API
+                let thumbnailsUrl = `/api/uploader/uploads/${file.id}/thumbnails`;
+                if (guestToken) {
+                  thumbnailsUrl += `?guest_token=${encodeURIComponent(
+                    guestToken
+                  )}`;
+                }
+
+                const response = await fetch(thumbnailsUrl, {
+                  headers: {
+                    Accept: "application/json",
+                  },
+                });
+
+                if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (
+                  !result.success ||
+                  !result.thumbnails ||
+                  Object.keys(result.thumbnails).length === 0
+                ) {
+                  // No thumbnails available
+                  thumbnailsModal.innerHTML = `
+                    <div class="bg-white rounded-lg p-6 w-96 max-w-full mx-4 shadow-2xl" onclick="event.stopPropagation()">
+                      <h3 class="text-lg font-medium mb-4">Thumbnail Links</h3>
+                      <div class="text-center py-8">
+                        <p class="text-gray-600 mb-4">No thumbnails available for this image.</p>
+                        <p class="text-sm text-gray-500">Thumbnails are generated automatically when images are uploaded.</p>
+                      </div>
+                      <div class="flex justify-end">
+                        <button id="thumbnails-close-${file.id}" class="px-4 py-2 text-gray-600 hover:text-gray-800 rounded">Close</button>
+                      </div>
+                    </div>
+                  `;
+                } else {
+                  // Build thumbnail links HTML
+                  let thumbnailsHtml = '<div class="space-y-3">';
+                  Object.entries(result.thumbnails).forEach(
+                    ([size, thumbnail]) => {
+                      thumbnailsHtml += `
+                      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-3">
+                          <span class="font-medium text-gray-700">${size}px</span>
+                          <span class="text-sm text-gray-500">${formatFileSize(
+                            thumbnail.size
+                          )}</span>
+                        </div>
+                        <button class="copy-thumbnail-btn px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700" data-url="${
+                          thumbnail.url
+                        }">
+                          Copy Link
+                        </button>
+                      </div>
+                    `;
+                    }
+                  );
+                  thumbnailsHtml += "</div>";
+
+                  thumbnailsModal.innerHTML = `
+                    <div class="bg-white rounded-lg p-6 w-96 max-w-full mx-4 shadow-2xl max-h-[80vh] overflow-y-auto" onclick="event.stopPropagation()">
+                      <h3 class="text-lg font-medium mb-4">Thumbnail Links</h3>
+                      <p class="text-sm text-gray-600 mb-4">Click "Copy Link" to copy the thumbnail URL to clipboard.</p>
+                      ${thumbnailsHtml}
+                      <div class="flex justify-end mt-6">
+                        <button id="thumbnails-close-${file.id}" class="px-4 py-2 text-gray-600 hover:text-gray-800 rounded">Close</button>
+                      </div>
+                    </div>
+                  `;
+                }
+
+                // Add event listeners for copy buttons
+                thumbnailsModal
+                  .querySelectorAll(".copy-thumbnail-btn")
+                  .forEach((btn) => {
+                    btn.addEventListener("click", function () {
+                      const url = this.getAttribute("data-url");
+                      copyToClipboard(url)
+                        .then(() => {
+                          // Show success feedback
+                          this.textContent = "Copied!";
+                          this.classList.remove(
+                            "bg-blue-600",
+                            "hover:bg-blue-700"
+                          );
+                          this.classList.add("bg-green-600");
+                          setTimeout(() => {
+                            this.textContent = "Copy Link";
+                            this.classList.remove("bg-green-600");
+                            this.classList.add(
+                              "bg-blue-600",
+                              "hover:bg-blue-700"
+                            );
+                          }, 2000);
+                        })
+                        .catch((err) => {
+                          logError("Failed to copy thumbnail URL:", err);
+                          prompt("Copy this URL:", url);
+                        });
+                    });
+                  });
+
+                // Close button
+                thumbnailsModal
+                  .querySelector(`#thumbnails-close-${file.id}`)
+                  .addEventListener("click", () => {
+                    document.body.removeChild(thumbnailsModal);
+                  });
+              } catch (err) {
+                // Show error state
+                thumbnailsModal.innerHTML = `
+                  <div class="bg-white rounded-lg p-6 w-96 max-w-full mx-4 shadow-2xl" onclick="event.stopPropagation()">
+                    <h3 class="text-lg font-medium mb-4">Thumbnail Links</h3>
+                    <div class="text-center py-8">
+                      <p class="text-red-600 mb-4">Failed to load thumbnails.</p>
+                      <p class="text-sm text-gray-500">Please try again later.</p>
+                    </div>
+                    <div class="flex justify-end">
+                      <button id="thumbnails-close-${file.id}" class="px-4 py-2 text-gray-600 hover:text-gray-800 rounded">Close</button>
+                    </div>
+                  </div>
+                `;
+
+                // Close button for error state
+                thumbnailsModal
+                  .querySelector(`#thumbnails-close-${file.id}`)
+                  .addEventListener("click", () => {
+                    document.body.removeChild(thumbnailsModal);
+                  });
+
+                logError("Failed to fetch thumbnails:", err);
+              }
+            });
+          }
+        }
+
         if (file.permissions && file.permissions.delete) {
           // Add rename functionality
           const renameBtn = menu.querySelector(".uploader-rename-btn");

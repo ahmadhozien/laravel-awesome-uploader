@@ -119,10 +119,16 @@ class UploadController extends Controller
         }
 
         // Process image if it's an image and processing is enabled
-        if (Str::startsWith($result['type'], 'image') && Config::get('uploader.image_optimization')) {
-            $processResult = $this->imageProcessor->process($result['path']);
-            if ($processResult['success'] && isset($processResult['thumbnails'])) {
-                $result['thumbnails'] = $processResult['thumbnails'];
+        if (Str::startsWith($result['type'], 'image')) {
+            $imageOptimization = Config::get('uploader.image_optimization');
+            $generateThumbnails = Config::get('uploader.generate_thumbnails');
+
+            // Process if either optimization or thumbnails are enabled
+            if ($imageOptimization || $generateThumbnails) {
+                $processResult = $this->imageProcessor->process($result['path']);
+                if ($processResult['success'] && isset($processResult['thumbnails'])) {
+                    $result['thumbnails'] = $processResult['thumbnails'];
+                }
             }
         }
 
@@ -185,10 +191,16 @@ class UploadController extends Controller
             }
 
             // Process image if needed
-            if (Str::startsWith($result['type'], 'image') && Config::get('uploader.image_optimization')) {
-                $processResult = $this->imageProcessor->process($result['path']);
-                if ($processResult['success'] && isset($processResult['thumbnails'])) {
-                    $result['thumbnails'] = $processResult['thumbnails'];
+            if (Str::startsWith($result['type'], 'image')) {
+                $imageOptimization = Config::get('uploader.image_optimization');
+                $generateThumbnails = Config::get('uploader.generate_thumbnails');
+
+                // Process if either optimization or thumbnails are enabled
+                if ($imageOptimization || $generateThumbnails) {
+                    $processResult = $this->imageProcessor->process($result['path']);
+                    if ($processResult['success'] && isset($processResult['thumbnails'])) {
+                        $result['thumbnails'] = $processResult['thumbnails'];
+                    }
                 }
             }
 
@@ -302,21 +314,19 @@ class UploadController extends Controller
                     'delete' => $deletePermission,
                     'download' => $viewPermission,
                 ];
-                $uploadArray['formatted_size'] = $upload->formatted_size;
-                $uploadArray['is_image'] = $upload->is_image;
 
-                // Add debug info
+                // Temporarily use simple values to isolate the issue
+                $uploadArray['formatted_size'] = number_format($upload->size / 1024, 2) . ' KB';
+                $uploadArray['is_image'] = Str::startsWith($upload->type, 'image');
+
+                // Temporarily disable thumbnails to prevent API errors
+                // TODO: Implement safer thumbnail detection
+
+                // Add minimal debug info
                 $uploadArray['debug'] = [
                     'guest_token_match' => $upload->guest_token === $guestToken,
-                    'upload_guest_token' => $upload->guest_token,
-                    'request_guest_token' => $guestToken,
                     'view_permission' => $viewPermission,
                     'delete_permission' => $deletePermission,
-                    'user_authenticated' => $user ? true : false,
-                    'upload_guest_token_type' => gettype($upload->guest_token),
-                    'request_guest_token_type' => gettype($guestToken),
-                    'tokens_identical' => $upload->guest_token === $guestToken,
-                    'tokens_equal' => $upload->guest_token == $guestToken,
                 ];
 
                 return $uploadArray;
@@ -492,5 +502,125 @@ class UploadController extends Controller
             'upload' => $upload,
             'message' => 'File renamed successfully'
         ]);
+    }
+
+    /**
+     * Get existing thumbnails for an image.
+     *
+     * @param string $imagePath
+     * @return array
+     */
+    protected function getExistingThumbnails(string $imagePath): array
+    {
+        try {
+            $diskName = Config::get('uploader.disk', 'local');
+            $disk = Storage::disk($diskName);
+            $sizes = Config::get('uploader.thumbnail_sizes', [150, 300, 600]);
+            $thumbnails = [];
+
+            Log::info('Getting thumbnails for image', [
+                'image_path' => $imagePath,
+                'disk' => $diskName,
+                'sizes' => $sizes
+            ]);
+
+            foreach ($sizes as $size) {
+                try {
+                    $thumbnailPath = $this->getThumbnailPath($imagePath, $size);
+
+                    if ($disk->exists($thumbnailPath)) {
+                        $thumbnails[$size] = [
+                            'path' => $thumbnailPath,
+                            'url' => $disk->url($thumbnailPath),
+                            'size' => $disk->size($thumbnailPath),
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Failed to process thumbnail size', [
+                        'image_path' => $imagePath,
+                        'size' => $size,
+                        'error' => $e->getMessage()
+                    ]);
+                    // Continue with other sizes
+                }
+            }
+
+            return $thumbnails;
+        } catch (\Exception $e) {
+            Log::error('Failed to get existing thumbnails', [
+                'image_path' => $imagePath,
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Get thumbnail path for a given size.
+     *
+     * @param string $originalPath
+     * @param int $size
+     * @return string
+     */
+    protected function getThumbnailPath(string $originalPath, int $size): string
+    {
+        $pathInfo = pathinfo($originalPath);
+
+        return $pathInfo['dirname'] . '/' .
+            $pathInfo['filename'] . '_thumb_' . $size . '.' .
+            $pathInfo['extension'];
+    }
+
+    /**
+     * Get thumbnails for a specific upload.
+     *
+     * @param int $id
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getThumbnails($id, Request $request)
+    {
+        $upload = Upload::find($id);
+
+        if (!$upload) {
+            return Response::json(['error' => 'File not found'], 404);
+        }
+
+        // Check permissions
+        $guestToken = $request->query('guest_token') ?: $request->input('guest_token');
+        $user = Auth::user();
+
+        $canView = false;
+
+        if ($user) {
+            // Authenticated user - use policy
+            $canView = Gate::allows('view', [$upload, $guestToken]);
+        } else {
+            // Guest user - check guest token match
+            $canView = $guestToken && $upload->guest_token === $guestToken;
+        }
+
+        if (!$canView) {
+            return Response::json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Only return thumbnails for images
+        if (!Str::startsWith($upload->type, 'image')) {
+            return Response::json(['error' => 'File is not an image'], 400);
+        }
+
+        try {
+            $thumbnails = $this->getExistingThumbnails($upload->path);
+            return Response::json([
+                'success' => true,
+                'thumbnails' => $thumbnails
+            ]);
+        } catch (\Exception $e) {
+            return Response::json([
+                'success' => false,
+                'error' => 'Failed to get thumbnails',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }

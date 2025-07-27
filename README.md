@@ -19,6 +19,7 @@ A **production-ready**, customizable and pluggable file uploader for Laravel tha
 - **📈 Performance Optimized**: Database indexing, pagination, and efficient file operations.
 - **🛡️ Enhanced Security**: Multi-layer validation, MIME type checking, and filename sanitization.
 - **📸 Automatic Thumbnails**: Generate multiple thumbnail sizes for images automatically.
+- **🔗 Thumbnail Links**: Copy thumbnail URLs for easy integration in your applications.
 - **👤 Guest Upload Support**: Allow non-authenticated users to upload with rate limiting.
 - **📊 Upload Statistics**: Built-in analytics for file uploads and storage usage.
 - **🧹 File Cleanup**: Automatic detection and cleanup of orphaned files.

@@ -261,8 +261,13 @@ class ImageProcessor
 
             // Generate thumbnails if enabled
             $thumbnails = [];
-            if ($options['generate_thumbnails'] ?? Config::get('uploader.generate_thumbnails', true)) {
+            $shouldGenerateThumbnails = $options['generate_thumbnails'] ?? Config::get('uploader.generate_thumbnails', true);
+            if ($shouldGenerateThumbnails) {
+                Log::info('Generating thumbnails for image', ['path' => $path]);
                 $thumbnails = $this->generateThumbnails($path, $options);
+                Log::info('Thumbnail generation result', ['count' => count($thumbnails), 'thumbnails' => $thumbnails]);
+            } else {
+                Log::info('Thumbnail generation disabled', ['config_value' => $shouldGenerateThumbnails]);
             }
 
             return [
@@ -294,6 +299,7 @@ class ImageProcessor
     public function generateThumbnails(string $imagePath, array $options = []): array
     {
         if (!$this->available) {
+            Log::warning('Thumbnail generation skipped - Intervention Image not available');
             return [];
         }
 
@@ -301,6 +307,12 @@ class ImageProcessor
         $sizes = $options['sizes'] ?? Config::get('uploader.thumbnail_sizes', [150, 300, 600]);
         $quality = $options['thumbnail_quality'] ?? Config::get('uploader.thumbnail_quality', 80);
         $thumbnails = [];
+
+        Log::info('Starting thumbnail generation', [
+            'image_path' => $imagePath,
+            'sizes' => $sizes,
+            'quality' => $quality
+        ]);
 
         try {
             $image = $this->createImage($disk->get($imagePath));
