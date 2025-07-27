@@ -149,7 +149,7 @@ return [
     | Settings for database integration and querying.
     |
     */
-    'save_to_db' => env('UPLOADER_SAVE_TO_DB', false),
+    'save_to_db' => env('UPLOADER_SAVE_TO_DB', true),
     'pagination_limit' => env('UPLOADER_PAGINATION_LIMIT', 20),
 
     /*
@@ -198,6 +198,6 @@ return [
     | Enable detailed logging for debugging upload issues.
     |
     */
-    'enable_logging' => env('UPLOADER_ENABLE_LOGGING', true),
+    'enable_logging' => env('UPLOADER_ENABLE_LOGGING', false),
     'log_channel' => env('UPLOADER_LOG_CHANNEL', 'daily'), // Laravel log channel
 ];

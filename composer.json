@@ -1,11 +1,27 @@
 {
     "name": "hozien/laravel-awesome-uploader",
-    "description": "A customizable and pluggable file uploader for Laravel.",
+    "description": "A production-ready, customizable and pluggable file uploader for Laravel with enterprise-level features including deduplication, thumbnails, and advanced security.",
+    "keywords": ["laravel", "file-upload", "uploader", "blade", "react", "vue", "thumbnails", "deduplication", "enterprise"],
     "type": "laravel-package",
     "license": "MIT",
+    "version": "1.0.2",
     "authors": [
         {
-            "name": "Hozien"
+            "name": "Hozien",
+            "email": "ahmadhozien@gmail.com",
+            "homepage": "https://github.com/ahmadhozien"
+        }
+    ],
+    "homepage": "https://github.com/ahmadhozien/laravel-awesome-uploader",
+    "support": {
+        "issues": "https://github.com/ahmadhozien/laravel-awesome-uploader/issues",
+        "source": "https://github.com/ahmadhozien/laravel-awesome-uploader",
+        "docs": "https://github.com/ahmadhozien/laravel-awesome-uploader#readme"
+    },
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/ahmadhozien"
         }
     ],
     "require": {
@@ -14,11 +30,26 @@
         "illuminate/http": "^9.0 || ^10.0 || ^11.0 || ^12.0",
         "illuminate/filesystem": "^9.0 || ^10.0 || ^11.0 || ^12.0",
         "illuminate/routing": "^9.0 || ^10.0 || ^11.0 || ^12.0",
-        "illuminate/view": "^9.0 || ^10.0 || ^11.0 || ^12.0"
+        "illuminate/view": "^9.0 || ^10.0 || ^11.0 || ^12.0",
+        "illuminate/database": "^9.0 || ^10.0 || ^11.0 || ^12.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.0 || ^10.0",
+        "orchestra/testbench": "^7.0 || ^8.0 || ^9.0",
+        "mockery/mockery": "^1.4"
+    },
+    "suggest": {
+        "intervention/image": "Required for image processing, optimization, and thumbnail generation (^2.5 || ^3.0)"
     },
     "autoload": {
         "psr-4": {
             "Hozien\\Uploader\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Hozien\\Uploader\\Tests\\": "tests/",
+            "Database\\Factories\\": "database/factories/"
         }
     },
     "extra": {
@@ -29,8 +60,24 @@
             "aliases": {
                 "Uploader": "Hozien\\Uploader\\Facades\\Uploader"
             }
+        },
+        "branch-alias": {
+            "dev-main": "1.0-dev",
+            "dev-1.0": "1.0-dev"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "composer/package-versions-deprecated": true
         }
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "test-coverage": "vendor/bin/phpunit --coverage-html coverage",
+        "analyse": "vendor/bin/phpstan analyse",
+        "format": "vendor/bin/php-cs-fixer fix"
+    }
 } 

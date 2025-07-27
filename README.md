@@ -19,9 +19,55 @@ A **production-ready**, customizable and pluggable file uploader for Laravel tha
 - **📈 Performance Optimized**: Database indexing, pagination, and efficient file operations.
 - **🛡️ Enhanced Security**: Multi-layer validation, MIME type checking, and filename sanitization.
 - **📸 Automatic Thumbnails**: Generate multiple thumbnail sizes for images automatically.
+- **🔗 Thumbnail Links**: Copy thumbnail URLs for easy integration in your applications.
 - **👤 Guest Upload Support**: Allow non-authenticated users to upload with rate limiting.
 - **📊 Upload Statistics**: Built-in analytics for file uploads and storage usage.
 - **🧹 File Cleanup**: Automatic detection and cleanup of orphaned files.
+
+## Screenshots
+
+> **📸 Screenshots Coming Soon!** 
+> 
+> We're working on adding beautiful screenshots to showcase the uploader interface. The screenshots will be added to the `docs/screenshots/` directory and will automatically appear here.
+
+### 🏠 Landing Page
+
+![Landing Page](docs/screenshots/landing-page.png)
+*Clean, modern landing page with gradient background and prominent call-to-action*
+
+### 📚 Documentation Page
+
+![Documentation](docs/screenshots/documentation.png)
+*Comprehensive documentation with installation instructions, usage examples, and live demo*
+
+### 📁 File Manager (Empty State)
+
+![File Manager Empty](docs/screenshots/file-manager-empty.png)
+*File manager interface showing empty state with search, filters, and upload guidance*
+
+### 📤 Upload Interface
+
+![Upload Interface](docs/screenshots/upload-interface.png)
+*Modern drag-and-drop upload interface with cloud icon and clear instructions*
+
+### 📋 File Manager with Files
+
+![File Manager with Files](docs/screenshots/file-manager-with-files.png)
+*File manager displaying uploaded files with thumbnails, file info, and selection options*
+
+### ⚙️ File Options Menu
+
+![File Options Menu](docs/screenshots/file-options-menu.png)
+*Context menu showing file actions: Info, Download, Copy Link, Rename, and Delete*
+
+**📋 Screenshot Requirements:**
+- **Format**: PNG files
+- **Size**: 1200x800px for main screenshots, 1000x700px for interface screenshots
+- **Quality**: High resolution, optimized for web
+- **Location**: Place in `docs/screenshots/` directory
+- **Naming**: Use kebab-case (e.g., `landing-page.png`)
+
+See `docs/screenshots/README.md` for detailed guidelines.
 
 ## Installation
 
@@ -44,6 +90,43 @@ This publishes:
 - Frontend assets to `public/vendor/uploader`
 - Migrations to `database/migrations`
 - Translation files to `resources/lang/vendor/uploader`
+
+## Prerequisites
+
+### Required Dependencies
+
+**For Image Processing Features:**
+
+```bash
+composer require intervention/image
+```
+
+**Version Compatibility:**
+
+- **Intervention Image v2.x** (^2.5) - Fully supported
+- **Intervention Image v3.x** (^3.0) - Fully supported
+- The package automatically detects and adapts to the installed version
+
+**Why this is needed:**
+
+- Image optimization and compression
+- Automatic thumbnail generation
+- Image orientation correction (EXIF data)
+- Image format conversion and manipulation
+
+**What happens without it:**
+
+- Uploader works normally for all file types
+- Image processing features are gracefully disabled
+- Warning logged: "Intervention Image package not installed - image processing disabled"
+- No errors or broken functionality
+
+### System Requirements
+
+- **PHP**: 8.1 or higher
+- **Laravel**: 9.0, 10.0, 11.0, or 12.0
+- **Storage**: Any Laravel filesystem disk (local, S3, etc.)
+- **Database**: MySQL, PostgreSQL, SQLite, or SQL Server (for database integration)
 
 ## Database Setup
 
@@ -104,7 +187,7 @@ UPLOADER_AUTO_CLEANUP=false
 UPLOADER_CLEANUP_DAYS=30
 
 # Logging
-UPLOADER_ENABLE_LOGGING=true
+UPLOADER_ENABLE_LOGGING=false
 UPLOADER_LOG_CHANNEL=daily
 ```
 
@@ -160,6 +243,193 @@ return [
 ];
 ```
 
+### Image Processing Configuration
+
+**⚠️ Important:** Image processing features require the `intervention/image` package. Install it first:
+
+```bash
+composer require intervention/image
+```
+
+#### Image Optimization Settings
+
+```env
+# Enable/disable image optimization (default: true)
+UPLOADER_IMAGE_OPTIMIZATION=true
+
+# Image quality for optimization (1-100, default: 85)
+UPLOADER_IMAGE_QUALITY=85
+
+# Auto-correct image orientation from EXIF data (default: true)
+UPLOADER_AUTO_ORIENT=true
+```
+
+**What these do:**
+
+- **`UPLOADER_IMAGE_OPTIMIZATION`**: Enables compression and optimization of uploaded images
+- **`UPLOADER_IMAGE_QUALITY`**: Controls compression level (higher = better quality, larger file)
+- **`UPLOADER_AUTO_ORIENT`**: Fixes images that appear rotated due to EXIF orientation data
+
+#### Thumbnail Generation Settings
+
+```env
+# Enable/disable automatic thumbnail generation (default: true)
+UPLOADER_GENERATE_THUMBNAILS=true
+
+# Quality for thumbnail images (1-100, default: 80)
+UPLOADER_THUMBNAIL_QUALITY=80
+```
+
+**Thumbnail Sizes** (configured in `config/uploader.php`):
+
+```php
+'thumbnail_sizes' => [150, 300, 600], // Width in pixels
+```
+
+**Generated Files:**
+
+- Original: `uploads/image.jpg`
+- Thumbnails:
+  - `uploads/image_thumb_150.jpg` (150px wide)
+  - `uploads/image_thumb_300.jpg` (300px wide)
+  - `uploads/image_thumb_600.jpg` (600px wide)
+
+#### Testing Image Processing
+
+**1. Verify Installation:**
+
+```bash
+# Check if intervention/image is installed
+composer show intervention/image
+```
+
+**2. Test Upload Response:**
+Upload an image and check the response for:
+
+```json
+{
+  "success": true,
+  "path": "uploads/image.jpg",
+  "thumbnails": {
+    "150": {
+      "path": "uploads/image_thumb_150.jpg",
+      "url": "http://your-app.com/storage/uploads/image_thumb_150.jpg",
+      "size": 12345
+    },
+    "300": { ... },
+    "600": { ... }
+  }
+}
+```
+
+**3. Check File Sizes:**
+
+- Original image should be compressed (smaller file size)
+- Thumbnails should be significantly smaller
+- All images should have correct orientation
+
+#### Troubleshooting Image Processing
+
+**Problem: No thumbnails generated**
+
+- **Solution**: Install `intervention/image` package
+- **Check**: Look for warning in Laravel logs: "Intervention Image package not installed"
+
+**Problem: Images still large after optimization**
+
+- **Solution**: Lower `UPLOADER_IMAGE_QUALITY` value (try 70-80)
+- **Check**: Original image format (PNG files compress less than JPEG)
+
+**Problem: Thumbnails not appearing**
+
+- **Solution**: Check storage disk configuration and file permissions
+- **Check**: Verify thumbnail paths in response
+
+**Problem: Images appear rotated**
+
+- **Solution**: Ensure `UPLOADER_AUTO_ORIENT=true`
+- **Check**: Image has EXIF orientation data
+
+#### Performance Considerations
+
+- **Quality vs Size**: Lower quality = smaller files = faster uploads
+- **Thumbnail Count**: More sizes = more processing time
+- **Storage Space**: Each thumbnail uses additional storage
+- **Processing Time**: Large images take longer to process
+
+**Recommended Settings for Production:**
+
+```env
+UPLOADER_IMAGE_QUALITY=80          # Good balance of quality/size
+UPLOADER_THUMBNAIL_QUALITY=75      # Thumbnails can be lower quality
+UPLOADER_GENERATE_THUMBNAILS=true  # Enable for responsive design
+```
+
+### Logging Configuration
+
+The uploader provides comprehensive logging for both backend and frontend operations. You can control logging behavior through environment variables:
+
+#### Backend Logging
+
+Backend logging is controlled by Laravel's logging system and the uploader's configuration:
+
+```env
+# Enable/disable uploader-specific logging (default: false)
+UPLOADER_ENABLE_LOGGING=false
+
+# Laravel log channel for uploader logs (default: daily)
+UPLOADER_LOG_CHANNEL=daily
+```
+
+**Backend Logging Features:**
+
+- Upload attempts and results
+- File validation errors
+- Duplicate detection
+- Image processing operations
+- Guest token management
+- Permission checks
+- Error tracking and debugging
+
+#### Frontend Logging
+
+Frontend console logging is also controlled by the `UPLOADER_ENABLE_LOGGING` setting:
+
+**When `UPLOADER_ENABLE_LOGGING=true`:**
+
+- API request/response logging
+- File upload progress
+- Error details and debugging
+- Guest token operations
+- Permission checks
+- File manager operations
+
+**When `UPLOADER_ENABLE_LOGGING=false` (default):**
+
+- Silent operation
+- No console output
+- Clean production environment
+
+#### Logging Best Practices
+
+```env
+# Development environment - enable detailed logging
+UPLOADER_ENABLE_LOGGING=true
+UPLOADER_LOG_CHANNEL=daily
+
+# Production environment - disable logging for performance
+UPLOADER_ENABLE_LOGGING=false
+UPLOADER_LOG_CHANNEL=daily
+```
+
+**Example Log Output:**
+
+```
+[2025-07-26 22:42:20] uploader.INFO: File uploaded successfully {"file":"example.jpg","size":26020,"user_id":null,"guest_token":"guest-abc123"}
+[2025-07-26 22:42:21] uploader.INFO: Thumbnails generated for example.jpg {"thumbnails":["150x150","300x300","600x600"]}
+[2025-07-26 22:42:22] uploader.WARNING: Duplicate file detected {"existing_file":"example.jpg","new_file":"example.jpg","hash":"abc123"}
+```
+
 ## Usage
 
 ### Blade Components
@@ -177,6 +447,10 @@ return [
     :saveToDb="true"
     :multiple="true"
 />
+```
+
+![Blade Component Interface](docs/screenshots/upload-interface.png)
+_The uploader interface as rendered by the Blade component_
 
 <!-- Include the uploader JS asset (required) -->
 <script src="{{ asset('vendor/uploader/popup.js') }}"></script>
@@ -200,7 +474,8 @@ return [
         // Handle upload errors
     });
 </script>
-```
+
+````
 
 **Component Options:**
 
@@ -252,7 +527,7 @@ function MyComponent() {
 }
 
 export default MyComponent;
-```
+````
 
 ### Vue Component
 

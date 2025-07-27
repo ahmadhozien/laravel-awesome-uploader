@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Config;
 use Hozien\Uploader\Models\Upload;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 
 class UploadController extends Controller
 {
@@ -44,31 +45,43 @@ class UploadController extends Controller
      */
     public function upload(Request $request)
     {
-        // Check guest upload permissions
-        $allowGuests = Config::get('uploader.allow_guests', false);
-        if (!$allowGuests && !Auth::check()) {
-            return Response::json(['errors' => ['Login required']], 403);
-        }
-
-        // Get upload options
-        $multiple = $request->boolean('multiple', false) || $request->hasFile('files');
-        $saveToDb = $request->boolean('saveToDb', Config::get('uploader.save_to_db', false));
-        $guestToken = $request->input('guest_token') ?: (Config::get('uploader.guest_token_resolver'))();
-
-        // Check guest upload limits
-        if (!Auth::check() && $allowGuests) {
-            $guestLimit = Config::get('uploader.guest_upload_limit', 10);
-            $currentCount = Upload::where('guest_token', $guestToken)->count();
-
-            if ($currentCount >= $guestLimit) {
-                return Response::json(['errors' => ['Guest upload limit exceeded']], 429);
+        try {
+            // Check guest upload permissions
+            $allowGuests = Config::get('uploader.allow_guests', false);
+            if (!$allowGuests && !Auth::check()) {
+                return Response::json(['errors' => ['Login required']], 403);
             }
-        }
 
-        if ($multiple) {
-            return $this->handleMultipleUpload($request, $saveToDb, $guestToken);
-        } else {
-            return $this->handleSingleUpload($request, $saveToDb, $guestToken);
+            // Get upload options
+            $multiple = $request->boolean('multiple', false) || $request->hasFile('files');
+            $saveToDb = $request->boolean('saveToDb', Config::get('uploader.save_to_db', false));
+            $guestToken = $request->input('guest_token');
+
+            // Check guest upload limits
+            if (!Auth::check() && $allowGuests) {
+                $guestLimit = Config::get('uploader.guest_upload_limit', 10);
+                $currentCount = Upload::where('guest_token', $guestToken)->count();
+
+                if ($currentCount >= $guestLimit) {
+                    return Response::json(['errors' => ['Guest upload limit exceeded']], 429);
+                }
+            }
+
+            if ($multiple) {
+                return $this->handleMultipleUpload($request, $saveToDb, $guestToken);
+            } else {
+                return $this->handleSingleUpload($request, $saveToDb, $guestToken);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Upload error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+
+            return Response::json([
+                'errors' => ['An unexpected error occurred during upload'],
+                'debug' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
     }
 
@@ -106,10 +119,16 @@ class UploadController extends Controller
         }
 
         // Process image if it's an image and processing is enabled
-        if (Str::startsWith($result['type'], 'image') && Config::get('uploader.image_optimization')) {
-            $processResult = $this->imageProcessor->process($result['path']);
-            if ($processResult['success'] && isset($processResult['thumbnails'])) {
-                $result['thumbnails'] = $processResult['thumbnails'];
+        if (Str::startsWith($result['type'], 'image')) {
+            $imageOptimization = Config::get('uploader.image_optimization');
+            $generateThumbnails = Config::get('uploader.generate_thumbnails');
+
+            // Process if either optimization or thumbnails are enabled
+            if ($imageOptimization || $generateThumbnails) {
+                $processResult = $this->imageProcessor->process($result['path']);
+                if ($processResult['success'] && isset($processResult['thumbnails'])) {
+                    $result['thumbnails'] = $processResult['thumbnails'];
+                }
             }
         }
 
@@ -172,10 +191,16 @@ class UploadController extends Controller
             }
 
             // Process image if needed
-            if (Str::startsWith($result['type'], 'image') && Config::get('uploader.image_optimization')) {
-                $processResult = $this->imageProcessor->process($result['path']);
-                if ($processResult['success'] && isset($processResult['thumbnails'])) {
-                    $result['thumbnails'] = $processResult['thumbnails'];
+            if (Str::startsWith($result['type'], 'image')) {
+                $imageOptimization = Config::get('uploader.image_optimization');
+                $generateThumbnails = Config::get('uploader.generate_thumbnails');
+
+                // Process if either optimization or thumbnails are enabled
+                if ($imageOptimization || $generateThumbnails) {
+                    $processResult = $this->imageProcessor->process($result['path']);
+                    if ($processResult['success'] && isset($processResult['thumbnails'])) {
+                        $result['thumbnails'] = $processResult['thumbnails'];
+                    }
                 }
             }
 
@@ -219,65 +244,106 @@ class UploadController extends Controller
      */
     public function index(Request $request)
     {
-        $userResolver = Config::get('uploader.user_resolver');
-        $adminResolver = Config::get('uploader.admin_resolver');
-        $uploadsQuery = Config::get('uploader.uploads_query');
-        $allowGuests = Config::get('uploader.allow_guests', false);
+        try {
+            $userResolver = Config::get('uploader.user_resolver');
+            $adminResolver = Config::get('uploader.admin_resolver');
+            $uploadsQuery = Config::get('uploader.uploads_query');
+            $allowGuests = Config::get('uploader.allow_guests', false);
 
-        $user = $userResolver();
-        $isAdmin = $adminResolver($user);
-        $guestToken = $request->input('guest_token') ?: (Config::get('uploader.guest_token_resolver'))();
+            $user = $userResolver();
+            $isAdmin = $adminResolver($user);
+            $guestToken = $request->input('guest_token');
 
-        $query = Upload::query()->with(['user' => function ($query) {
-            $query->select('id', 'name', 'email'); // Only select needed fields
-        }]);
+            $query = Upload::query()->with(['user' => function ($query) {
+                $query->select('id', 'name', 'email'); // Only select needed fields
+            }]);
 
-        // Apply user/admin filtering
-        if (!$user && $allowGuests) {
-            $query->where('guest_token', $guestToken);
-        } else {
-            $query = $uploadsQuery($query, $user, $isAdmin);
-        }
-
-        // Apply filters
-        if ($request->has('type')) {
-            $type = $request->input('type');
-            if ($type === 'images') {
-                $query->where('type', 'like', 'image%');
-            } elseif ($type === 'documents') {
-                $query->where('type', 'not like', 'image%');
+            // Apply user/admin filtering
+            if (!$user && $allowGuests) {
+                $query->where('guest_token', $guestToken);
+            } else {
+                $query = $uploadsQuery($query, $user, $isAdmin);
             }
+
+            // Apply filters
+            if ($request->has('type')) {
+                $type = $request->input('type');
+                if ($type === 'images') {
+                    $query->where('type', 'like', 'image%');
+                } elseif ($type === 'documents') {
+                    $query->where('type', 'not like', 'image%');
+                }
+            }
+
+            if ($request->has('search')) {
+                $search = $request->input('search');
+                $query->where('name', 'like', "%{$search}%");
+            }
+
+            // Apply sorting
+            $sortBy = $request->input('sort_by', 'created_at');
+            $sortOrder = $request->input('sort_order', 'desc');
+            $query->orderBy($sortBy, $sortOrder);
+
+            // Paginate results
+            $perPage = min($request->input('per_page', Config::get('uploader.pagination_limit', 20)), 100);
+            $uploads = $query->paginate($perPage);
+
+            // Add permissions to each upload
+            $uploads->getCollection()->transform(function ($upload) use ($guestToken, $user) {
+                $uploadArray = $upload->toArray();
+
+                // Simple permission logic for guest users
+                $viewPermission = false;
+                $deletePermission = false;
+
+                if ($user) {
+                    // Authenticated user - use policy
+                    $viewPermission = Gate::allows('view', [$upload, $guestToken]);
+                    $deletePermission = Gate::allows('delete', [$upload, $guestToken]);
+                } else {
+                    // Guest user - check guest token match
+                    if ($guestToken && $upload->guest_token === $guestToken) {
+                        $viewPermission = true;
+                        $deletePermission = true;
+                    }
+                }
+
+                $uploadArray['permissions'] = [
+                    'view' => $viewPermission,
+                    'delete' => $deletePermission,
+                    'download' => $viewPermission,
+                ];
+
+                // Temporarily use simple values to isolate the issue
+                $uploadArray['formatted_size'] = number_format($upload->size / 1024, 2) . ' KB';
+                $uploadArray['is_image'] = Str::startsWith($upload->type, 'image');
+
+                // Temporarily disable thumbnails to prevent API errors
+                // TODO: Implement safer thumbnail detection
+
+                // Add minimal debug info
+                $uploadArray['debug'] = [
+                    'guest_token_match' => $upload->guest_token === $guestToken,
+                    'view_permission' => $viewPermission,
+                    'delete_permission' => $deletePermission,
+                ];
+
+                return $uploadArray;
+            });
+
+            return Response::json($uploads);
+        } catch (\Exception $e) {
+            Log::error('Error in uploads index: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+
+            return Response::json([
+                'error' => 'An error occurred while fetching uploads',
+                'debug' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
-
-        if ($request->has('search')) {
-            $search = $request->input('search');
-            $query->where('name', 'like', "%{$search}%");
-        }
-
-        // Apply sorting
-        $sortBy = $request->input('sort_by', 'created_at');
-        $sortOrder = $request->input('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
-
-        // Paginate results
-        $perPage = min($request->input('per_page', Config::get('uploader.pagination_limit', 20)), 100);
-        $uploads = $query->paginate($perPage);
-
-        // Add permissions to each upload
-        $uploads->getCollection()->transform(function ($upload) use ($guestToken) {
-            $uploadArray = $upload->toArray();
-            $uploadArray['permissions'] = [
-                'view' => Gate::allows('view', [$upload, $guestToken]),
-                'delete' => Gate::allows('delete', [$upload, $guestToken]),
-                'download' => Gate::allows('view', [$upload, $guestToken]),
-            ];
-            $uploadArray['formatted_size'] = $upload->formatted_size;
-            $uploadArray['is_image'] = $upload->is_image;
-
-            return $uploadArray;
-        });
-
-        return Response::json($uploads);
     }
 
     /**
@@ -296,9 +362,20 @@ class UploadController extends Controller
         }
 
         // Check permissions
-        $guestToken = $request->input('guest_token') ?: (Config::get('uploader.guest_token_resolver'))();
+        $guestToken = $request->input('guest_token');
+        $user = Auth::user();
 
-        if (!Gate::allows('delete', [$upload, $guestToken])) {
+        $canDelete = false;
+
+        if ($user) {
+            // Authenticated user - use policy
+            $canDelete = Gate::allows('delete', [$upload, $guestToken]);
+        } else {
+            // Guest user - check guest token match
+            $canDelete = $guestToken && $upload->guest_token === $guestToken;
+        }
+
+        if (!$canDelete) {
             return Response::json(['error' => 'Unauthorized'], 403);
         }
 
@@ -362,5 +439,188 @@ class UploadController extends Controller
         $result = $uploader->cleanupOrphanedFiles();
 
         return Response::json($result);
+    }
+
+    /**
+     * Rename an upload.
+     *
+     * @param int $id
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function rename($id, Request $request)
+    {
+        $upload = Upload::find($id);
+
+        if (!$upload) {
+            return Response::json(['error' => 'File not found'], 404);
+        }
+
+        // Check permissions
+        // Try to get guest token from query params first, then from body
+        $guestToken = $request->query('guest_token') ?: $request->input('guest_token');
+        $user = Auth::user();
+
+        $canEdit = false;
+
+        if ($user) {
+            // Authenticated user - use policy
+            $canEdit = Gate::allows('update', [$upload, $guestToken]);
+        } else {
+            // Guest user - check guest token match
+            $canEdit = $guestToken && $upload->guest_token === $guestToken;
+        }
+
+        if (!$canEdit) {
+            return Response::json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Validate new name
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255|regex:/^[a-zA-Z0-9\s\-_.()]+$/',
+        ]);
+
+        if ($validator->fails()) {
+            return Response::json(['errors' => $validator->errors()], 422);
+        }
+
+        $newName = $request->input('name');
+
+        // Add file extension if not present
+        $originalExtension = pathinfo($upload->name, PATHINFO_EXTENSION);
+        $newExtension = pathinfo($newName, PATHINFO_EXTENSION);
+
+        if (!$newExtension && $originalExtension) {
+            $newName .= '.' . $originalExtension;
+        }
+
+        $upload->name = $newName;
+        $upload->save();
+
+        return Response::json([
+            'success' => true,
+            'upload' => $upload,
+            'message' => 'File renamed successfully'
+        ]);
+    }
+
+    /**
+     * Get existing thumbnails for an image.
+     *
+     * @param string $imagePath
+     * @return array
+     */
+    protected function getExistingThumbnails(string $imagePath): array
+    {
+        try {
+            $diskName = Config::get('uploader.disk', 'local');
+            $disk = Storage::disk($diskName);
+            $sizes = Config::get('uploader.thumbnail_sizes', [150, 300, 600]);
+            $thumbnails = [];
+
+            Log::info('Getting thumbnails for image', [
+                'image_path' => $imagePath,
+                'disk' => $diskName,
+                'sizes' => $sizes
+            ]);
+
+            foreach ($sizes as $size) {
+                try {
+                    $thumbnailPath = $this->getThumbnailPath($imagePath, $size);
+
+                    if ($disk->exists($thumbnailPath)) {
+                        $thumbnails[$size] = [
+                            'path' => $thumbnailPath,
+                            'url' => $disk->url($thumbnailPath),
+                            'size' => $disk->size($thumbnailPath),
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Failed to process thumbnail size', [
+                        'image_path' => $imagePath,
+                        'size' => $size,
+                        'error' => $e->getMessage()
+                    ]);
+                    // Continue with other sizes
+                }
+            }
+
+            return $thumbnails;
+        } catch (\Exception $e) {
+            Log::error('Failed to get existing thumbnails', [
+                'image_path' => $imagePath,
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Get thumbnail path for a given size.
+     *
+     * @param string $originalPath
+     * @param int $size
+     * @return string
+     */
+    protected function getThumbnailPath(string $originalPath, int $size): string
+    {
+        $pathInfo = pathinfo($originalPath);
+
+        return $pathInfo['dirname'] . '/' .
+            $pathInfo['filename'] . '_thumb_' . $size . '.' .
+            $pathInfo['extension'];
+    }
+
+    /**
+     * Get thumbnails for a specific upload.
+     *
+     * @param int $id
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getThumbnails($id, Request $request)
+    {
+        $upload = Upload::find($id);
+
+        if (!$upload) {
+            return Response::json(['error' => 'File not found'], 404);
+        }
+
+        // Check permissions
+        $guestToken = $request->query('guest_token') ?: $request->input('guest_token');
+        $user = Auth::user();
+
+        $canView = false;
+
+        if ($user) {
+            // Authenticated user - use policy
+            $canView = Gate::allows('view', [$upload, $guestToken]);
+        } else {
+            // Guest user - check guest token match
+            $canView = $guestToken && $upload->guest_token === $guestToken;
+        }
+
+        if (!$canView) {
+            return Response::json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Only return thumbnails for images
+        if (!Str::startsWith($upload->type, 'image')) {
+            return Response::json(['error' => 'File is not an image'], 400);
+        }
+
+        try {
+            $thumbnails = $this->getExistingThumbnails($upload->path);
+            return Response::json([
+                'success' => true,
+                'thumbnails' => $thumbnails
+            ]);
+        } catch (\Exception $e) {
+            return Response::json([
+                'success' => false,
+                'error' => 'Failed to get thumbnails',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }
