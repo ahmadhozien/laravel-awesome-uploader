@@ -26,8 +26,6 @@ A **production-ready**, customizable and pluggable file uploader for Laravel tha
 
 ## Screenshots
 
-### 🏠 Landing Page
-
 ![Landing Page](docs/screenshots/landing-page.png)
 
 ![Documentation](docs/screenshots/documentation.png)
