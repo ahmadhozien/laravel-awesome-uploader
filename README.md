@@ -24,6 +24,51 @@ A **production-ready**, customizable and pluggable file uploader for Laravel tha
 - **📊 Upload Statistics**: Built-in analytics for file uploads and storage usage.
 - **🧹 File Cleanup**: Automatic detection and cleanup of orphaned files.
 
+## Screenshots
+
+> **📸 Screenshots Coming Soon!** 
+> 
+> We're working on adding beautiful screenshots to showcase the uploader interface. The screenshots will be added to the `docs/screenshots/` directory and will automatically appear here.
+
+### 🏠 Landing Page
+
+![Landing Page](docs/screenshots/landing-page.png)
+*Clean, modern landing page with gradient background and prominent call-to-action*
+
+### 📚 Documentation Page
+
+![Documentation](docs/screenshots/documentation.png)
+*Comprehensive documentation with installation instructions, usage examples, and live demo*
+
+### 📁 File Manager (Empty State)
+
+![File Manager Empty](docs/screenshots/file-manager-empty.png)
+*File manager interface showing empty state with search, filters, and upload guidance*
+
+### 📤 Upload Interface
+
+![Upload Interface](docs/screenshots/upload-interface.png)
+*Modern drag-and-drop upload interface with cloud icon and clear instructions*
+
+### 📋 File Manager with Files
+
+![File Manager with Files](docs/screenshots/file-manager-with-files.png)
+*File manager displaying uploaded files with thumbnails, file info, and selection options*
+
+### ⚙️ File Options Menu
+
+![File Options Menu](docs/screenshots/file-options-menu.png)
+*Context menu showing file actions: Info, Download, Copy Link, Rename, and Delete*
+
+**📋 Screenshot Requirements:**
+- **Format**: PNG files
+- **Size**: 1200x800px for main screenshots, 1000x700px for interface screenshots
+- **Quality**: High resolution, optimized for web
+- **Location**: Place in `docs/screenshots/` directory
+- **Naming**: Use kebab-case (e.g., `landing-page.png`)
+
+See `docs/screenshots/README.md` for detailed guidelines.
+
 ## Installation
 
 Install the package via composer:
@@ -402,6 +447,10 @@ UPLOADER_LOG_CHANNEL=daily
     :saveToDb="true"
     :multiple="true"
 />
+```
+
+![Blade Component Interface](docs/screenshots/upload-interface.png)
+_The uploader interface as rendered by the Blade component_
 
 <!-- Include the uploader JS asset (required) -->
 <script src="{{ asset('vendor/uploader/popup.js') }}"></script>
@@ -425,7 +474,8 @@ UPLOADER_LOG_CHANNEL=daily
         // Handle upload errors
     });
 </script>
-```
+
+````
 
 **Component Options:**
 
@@ -477,7 +527,7 @@ function MyComponent() {
 }
 
 export default MyComponent;
-```
+````
 
 ### Vue Component
 
