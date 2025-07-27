@@ -430,4 +430,67 @@ class UploadController extends Controller
 
         return Response::json($result);
     }
+
+    /**
+     * Rename an upload.
+     *
+     * @param int $id
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function rename($id, Request $request)
+    {
+        $upload = Upload::find($id);
+
+        if (!$upload) {
+            return Response::json(['error' => 'File not found'], 404);
+        }
+
+        // Check permissions
+        // Try to get guest token from query params first, then from body
+        $guestToken = $request->query('guest_token') ?: $request->input('guest_token');
+        $user = Auth::user();
+
+        $canEdit = false;
+
+        if ($user) {
+            // Authenticated user - use policy
+            $canEdit = Gate::allows('update', [$upload, $guestToken]);
+        } else {
+            // Guest user - check guest token match
+            $canEdit = $guestToken && $upload->guest_token === $guestToken;
+        }
+
+        if (!$canEdit) {
+            return Response::json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Validate new name
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255|regex:/^[a-zA-Z0-9\s\-_.()]+$/',
+        ]);
+
+        if ($validator->fails()) {
+            return Response::json(['errors' => $validator->errors()], 422);
+        }
+
+        $newName = $request->input('name');
+
+        // Add file extension if not present
+        $originalExtension = pathinfo($upload->name, PATHINFO_EXTENSION);
+        $newExtension = pathinfo($newName, PATHINFO_EXTENSION);
+
+        if (!$newExtension && $originalExtension) {
+            $newName .= '.' . $originalExtension;
+        }
+
+        $upload->name = $newName;
+        $upload->save();
+
+        return Response::json([
+            'success' => true,
+            'upload' => $upload,
+            'message' => 'File renamed successfully'
+        ]);
+    }
 }

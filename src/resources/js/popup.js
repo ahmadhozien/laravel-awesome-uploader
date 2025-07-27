@@ -89,31 +89,57 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Clipboard helper functions
     function copyToClipboard(text) {
+      console.log("copyToClipboard called with:", text);
+
       return new Promise((resolve, reject) => {
-        // Modern clipboard API (requires HTTPS or localhost)
+        // Try multiple methods for maximum compatibility
+
+        // Method 1: Modern clipboard API
         if (navigator.clipboard && window.isSecureContext) {
-          navigator.clipboard.writeText(text).then(resolve).catch(reject);
+          console.log("Using modern clipboard API");
+          navigator.clipboard
+            .writeText(text)
+            .then(() => {
+              console.log("Modern clipboard API success");
+              resolve();
+            })
+            .catch((err) => {
+              console.log("Modern clipboard API failed:", err);
+              // Fallback to method 2
+              tryFallbackMethod();
+            });
         } else {
-          // Fallback for non-secure contexts
+          console.log("Modern clipboard API not available, using fallback");
+          tryFallbackMethod();
+        }
+
+        function tryFallbackMethod() {
           try {
             const textArea = document.createElement("textarea");
             textArea.value = text;
             textArea.style.position = "fixed";
             textArea.style.left = "-999999px";
             textArea.style.top = "-999999px";
+            textArea.style.opacity = "0";
+            textArea.setAttribute("readonly", "");
             document.body.appendChild(textArea);
+
             textArea.focus();
             textArea.select();
+            textArea.setSelectionRange(0, text.length);
 
             const success = document.execCommand("copy");
             document.body.removeChild(textArea);
 
+            console.log("Fallback method result:", success);
+
             if (success) {
               resolve();
             } else {
-              reject(new Error("execCommand failed"));
+              reject(new Error("execCommand copy failed"));
             }
           } catch (err) {
+            console.log("Fallback method error:", err);
             reject(err);
           }
         }
@@ -254,6 +280,21 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
       fileGrid.innerHTML = "";
+
+      // Show no files message if empty
+      if (managerFiles.length === 0) {
+        fileGrid.innerHTML = `
+          <div class="col-span-full flex flex-col items-center justify-center py-12 text-gray-500">
+            <svg class="w-16 h-16 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+            </svg>
+            <p class="text-lg font-medium mb-1">No files uploaded yet</p>
+            <p class="text-sm">Upload files using the Upload tab</p>
+          </div>
+        `;
+        return;
+      }
+
       let visibleFiles = managerFiles;
       // Search filter
       if (searchTerm) {
@@ -327,6 +368,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     file.permissions && file.permissions.download
                       ? '<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 uploader-copy-btn flex items-center gap-2">' +
                         '<svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="13" height="13" x="9" y="9" rx="2"/><path d="M5 15V5a2 2 0 012-2h10a2 2 0 012 2v10"/></svg>Copy Link</button>'
+                      : ""
+                  }
+                  ${
+                    file.permissions && file.permissions.delete
+                      ? '<button class="block w-full text-left px-4 py-2 hover:bg-gray-100 uploader-rename-btn flex items-center gap-2">' +
+                        '<svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M13.5 3.5l3 3L8 15l-3 1 1-3 8.5-8.5z"/></svg>Rename</button>'
                       : ""
                   }
                   ${
@@ -407,24 +454,187 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         }
         if (file.permissions && file.permissions.download) {
-          if (menu.querySelector(".uploader-copy-btn")) {
-            menu
-              .querySelector(".uploader-copy-btn")
-              .addEventListener("click", function (e) {
-                e.stopPropagation();
-                menu.classList.add("hidden");
-                copyToClipboard(file.url)
-                  .then(() => {
-                    ellipsisBtn.blur();
-                    // Show a brief success message
-                    showCopySuccess();
-                  })
-                  .catch((err) => {
-                    logError("Failed to copy URL:", err);
-                    // Fallback: show the URL in an alert
-                    alert("URL copied to clipboard:\n" + file.url);
+          const copyBtn = menu.querySelector(".uploader-copy-btn");
+          if (copyBtn) {
+            copyBtn.addEventListener("click", function (e) {
+              e.stopPropagation();
+              menu.classList.add("hidden");
+
+              // Debug logging
+              log("Copying URL:", file.url);
+              log("Clipboard available:", !!navigator.clipboard);
+              log("Secure context:", window.isSecureContext);
+
+              if (!file.url || file.url === "") {
+                logError("File URL is empty or undefined");
+                alert("Error: File URL is not available");
+                return;
+              }
+
+              copyToClipboard(file.url)
+                .then(() => {
+                  log("Copy successful");
+                  if (ellipsisBtn) ellipsisBtn.blur();
+                  // Show a brief success message
+                  showCopySuccess();
+                })
+                .catch((err) => {
+                  logError("Failed to copy URL:", err);
+                  logError("Error details:", err.message);
+                  // Fallback: show the URL in an alert
+                  prompt("Copy this URL:", file.url);
+                });
+            });
+          }
+        }
+        if (file.permissions && file.permissions.delete) {
+          // Add rename functionality
+          const renameBtn = menu.querySelector(".uploader-rename-btn");
+          if (renameBtn) {
+            renameBtn.addEventListener("click", function (e) {
+              e.stopPropagation();
+              menu.classList.add("hidden");
+
+              // Temporarily disable focus trapping on main modal
+              document.removeEventListener("focus", trapFocus, true);
+
+              // Create rename modal
+              const renameModal = document.createElement("div");
+              renameModal.className =
+                "fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50";
+
+              // Get filename without extension
+              const nameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+
+              renameModal.innerHTML = `
+                <div class="bg-white rounded-lg p-6 w-96 max-w-full mx-4 shadow-2xl" onclick="event.stopPropagation()">
+                  <h3 class="text-lg font-medium mb-4">Rename File</h3>
+                  <input type="text" id="rename-input-${file.id}" class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500" value="${nameWithoutExt}" autocomplete="off" />
+                  <div class="flex gap-2 justify-end">
+                    <button id="rename-cancel-${file.id}" class="px-4 py-2 text-gray-600 hover:text-gray-800 rounded">Cancel</button>
+                    <button id="rename-confirm-${file.id}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Rename</button>
+                  </div>
+                </div>
+              `;
+
+              document.body.appendChild(renameModal);
+
+              // Force focus on the input
+              setTimeout(() => {
+                const input = document.getElementById(
+                  `rename-input-${file.id}`
+                );
+                console.log("Input element:", input);
+                console.log(
+                  "Input disabled:",
+                  input ? input.disabled : "not found"
+                );
+                console.log(
+                  "Input readonly:",
+                  input ? input.readOnly : "not found"
+                );
+
+                if (input) {
+                  input.disabled = false;
+                  input.readOnly = false;
+                  input.removeAttribute("disabled");
+                  input.removeAttribute("readonly");
+                  input.focus();
+                  input.select();
+                  console.log("Input focused and selected");
+                }
+              }, 100);
+
+              const cancel = () => {
+                document.body.removeChild(renameModal);
+                // Re-enable focus trapping on main modal
+                document.addEventListener("focus", trapFocus, true);
+              };
+
+              const confirm = async () => {
+                const input = renameModal.querySelector(
+                  `#rename-input-${file.id}`
+                );
+                if (!input) return;
+
+                const newName = input.value.trim();
+                if (!newName) return;
+
+                try {
+                  // Build URL with guest token (like delete request)
+                  let renameUrl = `/api/uploader/uploads/${file.id}/rename`;
+                  if (guestToken) {
+                    renameUrl += `?guest_token=${encodeURIComponent(
+                      guestToken
+                    )}`;
+                  }
+
+                  // Prepare JSON data
+                  const requestData = {
+                    name: newName,
+                  };
+
+                  if (guestToken) {
+                    requestData.guest_token = guestToken;
+                  }
+
+                  console.log("Rename URL:", renameUrl);
+                  console.log("Request data:", requestData);
+
+                  const response = await fetch(renameUrl, {
+                    method: "PUT",
+                    headers: {
+                      "X-CSRF-TOKEN": csrfToken,
+                      "Content-Type": "application/json",
+                      Accept: "application/json",
+                    },
+                    body: JSON.stringify(requestData),
                   });
-              });
+
+                  if (response.ok) {
+                    const result = await response.json();
+                    // Update the file in our array
+                    const fileIndex = managerFiles.findIndex(
+                      (f) => f.id === file.id
+                    );
+                    if (fileIndex !== -1) {
+                      managerFiles[fileIndex].name = result.upload.name;
+                    }
+                    renderFileGrid();
+                    cancel();
+                  } else {
+                    const error = await response.json();
+                    showError(error.error || "Failed to rename file");
+                    // Re-enable focus trapping even on error
+                    document.addEventListener("focus", trapFocus, true);
+                  }
+                } catch (err) {
+                  showError("Error renaming file: " + err.message);
+                  // Re-enable focus trapping on error
+                  document.addEventListener("focus", trapFocus, true);
+                }
+              };
+
+              renameModal
+                .querySelector(`#rename-cancel-${file.id}`)
+                .addEventListener("click", cancel);
+              renameModal
+                .querySelector(`#rename-confirm-${file.id}`)
+                .addEventListener("click", confirm);
+
+              // Add keyboard event listener after input is ready
+              setTimeout(() => {
+                const input = renameModal.querySelector(
+                  `#rename-input-${file.id}`
+                );
+                if (input) {
+                  input.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") confirm();
+                    if (e.key === "Escape") cancel();
+                  });
+                }
+              }, 60);
+            });
           }
         }
         if (file.permissions && file.permissions.delete) {
@@ -436,16 +646,20 @@ document.addEventListener("DOMContentLoaded", function () {
               deleteModal.classList.remove("hidden");
               deleteFileCallback = async function () {
                 try {
-                  const response = await fetch(
-                    `/api/uploader/uploads/${file.id}`,
-                    {
-                      method: "DELETE",
-                      headers: {
-                        "X-CSRF-TOKEN": csrfToken,
-                        Accept: "application/json",
-                      },
-                    }
-                  );
+                  let deleteUrl = `/api/uploader/uploads/${file.id}`;
+                  if (guestToken) {
+                    deleteUrl += `?guest_token=${encodeURIComponent(
+                      guestToken
+                    )}`;
+                  }
+
+                  const response = await fetch(deleteUrl, {
+                    method: "DELETE",
+                    headers: {
+                      "X-CSRF-TOKEN": csrfToken,
+                      Accept: "application/json",
+                    },
+                  });
                   if (response.ok) {
                     managerFiles = managerFiles.filter((f) => f.id !== file.id);
                     renderFileGrid();

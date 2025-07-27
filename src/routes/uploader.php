@@ -14,6 +14,7 @@ Route::group(['middleware' => ['api', 'json'], 'prefix' => 'api/uploader'], func
     // File management endpoints  
     Route::get('/uploads', [UploadController::class, 'index'])->name('uploader.index');
     Route::delete('/uploads/{id}', [UploadController::class, 'destroy'])->name('uploader.destroy');
+    Route::put('/uploads/{id}/rename', [UploadController::class, 'rename'])->name('uploader.rename');
 
     // Statistics and management endpoints
     Route::get('/stats', [UploadController::class, 'stats'])->name('uploader.stats');
